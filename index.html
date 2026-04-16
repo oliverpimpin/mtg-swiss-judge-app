@@ -12,24 +12,24 @@
       --line: #374151;
       --text: #f9fafb;
       --muted: #9ca3af;
-      --accent: #22c55e;
-      --accent2: #3b82f6;
-      --danger: #ef4444;
-      --warn: #f59e0b;
+      --green: #166534;
+      --blue: #1d4ed8;
+      --red: #991b1b;
+      --gray: #374151;
+      --gold: #92400e;
     }
 
     * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      padding: 0;
       font-family: Arial, Helvetica, sans-serif;
       background: var(--bg);
       color: var(--text);
     }
 
     .wrap {
-      max-width: 1400px;
+      max-width: 1440px;
       margin: 0 auto;
       padding: 16px;
     }
@@ -76,13 +76,8 @@
       padding: 10px 12px;
     }
 
-    input::placeholder, textarea::placeholder {
-      color: var(--muted);
-    }
-
     button {
       cursor: pointer;
-      transition: 0.15s ease;
       font-weight: 700;
     }
 
@@ -90,15 +85,19 @@
       filter: brightness(1.08);
     }
 
-    .btn-green { background: #166534; }
-    .btn-blue { background: #1d4ed8; }
-    .btn-red { background: #991b1b; }
-    .btn-gray { background: #374151; }
-    .btn-gold { background: #92400e; }
+    .btn-green { background: var(--green); }
+    .btn-blue { background: var(--blue); }
+    .btn-red { background: var(--red); }
+    .btn-gray { background: var(--gray); }
+    .btn-gold { background: var(--gold); }
 
     .muted {
       color: var(--muted);
       font-size: 0.95rem;
+    }
+
+    .small {
+      font-size: 0.88rem;
     }
 
     .pill {
@@ -108,13 +107,16 @@
       background: var(--panel2);
       border: 1px solid var(--line);
       font-size: 0.9rem;
-      color: var(--text);
     }
+
+    .success { color: #86efac; }
+    .warn { color: #fcd34d; }
+    .danger { color: #fca5a5; }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 10px;
+      margin-top: 8px;
     }
 
     th, td {
@@ -127,7 +129,6 @@
     th {
       color: var(--muted);
       font-size: 0.92rem;
-      font-weight: 700;
     }
 
     .section-title {
@@ -154,12 +155,6 @@
       padding: 4px 0;
     }
 
-    .big-center {
-      text-align: center;
-      font-size: 1.2rem;
-      font-weight: 700;
-    }
-
     .topcut-bracket {
       display: grid;
       gap: 10px;
@@ -178,31 +173,9 @@
       font-weight: 700;
     }
 
-    .danger {
-      color: #fca5a5;
-    }
+    .spacer { height: 10px; }
 
-    .success {
-      color: #86efac;
-    }
-
-    .warn {
-      color: #fcd34d;
-    }
-
-    .hidden {
-      display: none;
-    }
-
-    .small {
-      font-size: 0.88rem;
-    }
-
-    .spacer {
-      height: 8px;
-    }
-
-    @media (max-width: 960px) {
+    @media (max-width: 980px) {
       .grid-2 {
         grid-template-columns: 1fr;
       }
@@ -212,7 +185,7 @@
 <body>
   <div class="wrap">
     <h1>MTG Swiss Pairings</h1>
-    <div class="muted">Offline single-file tournament app with auto rounds and top cut logic.</div>
+    <div class="muted">Judge-friendly offline single-file event app</div>
 
     <div class="spacer"></div>
 
@@ -242,6 +215,7 @@
 
           <div class="row">
             <button class="btn-green" id="startTournamentBtn">Start Tournament</button>
+            <button class="btn-blue" id="finalizeRoundBtn">Finalize Round</button>
             <button class="btn-blue" id="buildNextRoundBtn">Build Next Round</button>
             <button class="btn-red" id="resetTournamentBtn">Reset Tournament</button>
           </div>
@@ -257,15 +231,12 @@
         </div>
         <div class="col small">
           <div>Swiss rounds auto-detect from player count.</div>
-          <div>Top cut logic:</div>
+          <div class="muted">Top cut:</div>
           <div class="muted">• 8 or fewer players: no top cut</div>
           <div class="muted">• 9 to 16 players: Top 4</div>
           <div class="muted">• 17 or more players: Top 8</div>
-          <div>Match points:</div>
-          <div class="muted">• Win = 3</div>
-          <div class="muted">• Draw = 1</div>
-          <div class="muted">• Loss = 0</div>
-          <div class="muted">• BYE = 3</div>
+          <div class="muted">Match points: Win 3 | Draw 1 | Loss 0 | BYE 3</div>
+          <div class="muted">Standings update only after round finalization.</div>
         </div>
       </div>
     </div>
@@ -283,6 +254,8 @@
             <tr>
               <th>#</th>
               <th>Name</th>
+              <th>Status</th>
+              <th>Action</th>
               <th>Remove</th>
             </tr>
           </thead>
@@ -321,6 +294,8 @@
         <h2>Current Round</h2>
         <span class="pill" id="currentRoundPill">Round 0</span>
       </div>
+      <div id="roundStatusText" class="muted">No round yet.</div>
+      <div class="spacer"></div>
       <div id="pairingsContainer"></div>
     </div>
 
@@ -336,7 +311,7 @@
   </div>
 
   <script>
-    const STORAGE_KEY = "mtg_swiss_pairings_state_v2_topcut_fix";
+    const STORAGE_KEY = "mtg_swiss_pairings_state_v3_finalize_fix";
 
     const RESULT_OPTIONS = [
       { value: "", label: "-- Select Result --" },
@@ -391,7 +366,7 @@
 
     function getTopCutSize(playerCount) {
       if (playerCount <= 8) return 0;
-      if (playerCount >= 9 && playerCount <= 16) return 4;
+      if (playerCount <= 16) return 4;
       return 8;
     }
 
@@ -399,13 +374,20 @@
       return {
         id: uid(),
         name: name.trim(),
-        active: true,
         dropped: false
       };
     }
 
+    function getPlayerById(id) {
+      return state.players.find(p => p.id === id) || null;
+    }
+
     function getActivePlayers() {
       return state.players.filter(p => !p.dropped);
+    }
+
+    function getCompletedRoundsOnly() {
+      return state.rounds.filter(r => r.finalized);
     }
 
     function getAllPlayerStats() {
@@ -429,7 +411,7 @@
         };
       });
 
-      for (const round of state.rounds) {
+      for (const round of getCompletedRoundsOnly()) {
         for (const match of round.matches) {
           if (!match.result) continue;
 
@@ -455,19 +437,19 @@
       }
 
       const mwpMap = {};
-      for (const playerId in stats) {
-        const s = stats[playerId];
+      for (const id in stats) {
+        const s = stats[id];
         const matchesPlayed = s.wins + s.losses + s.draws;
-        const rawMwp = matchesPlayed > 0 ? (s.matchPoints / (matchesPlayed * 3)) : 0;
-        mwpMap[playerId] = Math.max(rawMwp, 0.33);
+        const rawMwp = matchesPlayed > 0 ? s.matchPoints / (matchesPlayed * 3) : 0;
+        mwpMap[id] = Math.max(rawMwp, 0.33);
       }
 
-      for (const playerId in stats) {
-        const s = stats[playerId];
-        const opps = s.opponents.filter(oppId => oppId !== null);
+      for (const id in stats) {
+        const s = stats[id];
+        const opps = s.opponents.filter(Boolean);
+
         if (opps.length > 0) {
-          const avg = opps.reduce((sum, oppId) => sum + (mwpMap[oppId] || 0.33), 0) / opps.length;
-          s.omw = avg;
+          s.omw = opps.reduce((sum, oppId) => sum + (mwpMap[oppId] || 0.33), 0) / opps.length;
         } else {
           s.omw = 0;
         }
@@ -475,13 +457,11 @@
         const totalGames = s.gameWins + s.gameLosses + s.gameDraws;
         s.gwp = totalGames > 0 ? Math.max((s.gameWins + s.gameDraws * 0.5) / totalGames, 0.33) : 0;
 
-        let oppGamePercents = [];
-        opps.forEach(oppId => {
+        const oppGamePercents = opps.map(oppId => {
           const opp = stats[oppId];
-          if (!opp) return;
+          if (!opp) return 0.33;
           const oppGames = opp.gameWins + opp.gameLosses + opp.gameDraws;
-          const oppGwp = oppGames > 0 ? Math.max((opp.gameWins + opp.gameDraws * 0.5) / oppGames, 0.33) : 0.33;
-          oppGamePercents.push(oppGwp);
+          return oppGames > 0 ? Math.max((opp.gameWins + opp.gameDraws * 0.5) / oppGames, 0.33) : 0.33;
         });
 
         s.ogw = oppGamePercents.length > 0
@@ -545,23 +525,25 @@
           a.gameDraws += 1;
           break;
         case "1-1-1":
+          a.matchPoints += 1;
+          b.matchPoints += 1;
+          a.draws += 1;
+          b.draws += 1;
+          a.gameWins += 1;
+          a.gameLosses += 1;
+          a.gameDraws += 1;
+          b.gameWins += 1;
+          b.gameLosses += 1;
+          b.gameDraws += 1;
+          break;
         case "0-0-1":
         case "ID":
           a.matchPoints += 1;
           b.matchPoints += 1;
           a.draws += 1;
           b.draws += 1;
-          if (result === "1-1-1") {
-            a.gameWins += 1;
-            a.gameLosses += 1;
-            a.gameDraws += 1;
-            b.gameWins += 1;
-            b.gameLosses += 1;
-            b.gameDraws += 1;
-          } else if (result === "0-0-1" || result === "ID") {
-            a.gameDraws += 1;
-            b.gameDraws += 1;
-          }
+          a.gameDraws += 1;
+          b.gameDraws += 1;
           break;
       }
     }
@@ -574,41 +556,83 @@
       return a.name.localeCompare(b.name);
     }
 
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+    }
+
+    function getPastOpponents(playerId) {
+      const opps = new Set();
+      for (const round of getCompletedRoundsOnly()) {
+        for (const match of round.matches) {
+          if (!match.player2Id) continue;
+          if (match.player1Id === playerId) opps.add(match.player2Id);
+          if (match.player2Id === playerId) opps.add(match.player1Id);
+        }
+      }
+      return opps;
+    }
+
+    function findSwissOpponentIndex(playerId, pool) {
+      const pastOpps = getPastOpponents(playerId);
+      for (let i = 0; i < pool.length; i++) {
+        if (!pastOpps.has(pool[i])) return i;
+      }
+      return -1;
+    }
+
+    function chooseByePlayer(pool, standingsOrder) {
+      const ordered = [...pool].sort((a, b) => {
+        const pa = standingsOrder.findIndex(x => x.id === a);
+        const pb = standingsOrder.findIndex(x => x.id === b);
+        return pb - pa;
+      });
+
+      for (const playerId of ordered) {
+        const stats = getAllPlayerStats().find(x => x.id === playerId);
+        if (!stats?.hadBye) return playerId;
+      }
+
+      return ordered[0];
+    }
+
     function generateSwissRound() {
       const roundNumber = state.currentRound + 1;
-      const standings = getAllPlayerStats()
-        .filter(p => state.players.find(x => x.id === p.id && !x.dropped));
+      const activeIds = getActivePlayers().map(p => p.id);
+
+      let standings = getAllPlayerStats()
+        .filter(p => activeIds.includes(p.id));
 
       let pool = standings.map(x => x.id);
-      const matches = [];
-      const used = new Set();
 
       if (roundNumber === 1) {
         shuffle(pool);
       }
 
+      const matches = [];
+
+      if (pool.length % 2 === 1) {
+        const byePlayerId = roundNumber === 1
+          ? pool[pool.length - 1]
+          : chooseByePlayer(pool, standings);
+
+        pool = pool.filter(id => id !== byePlayerId);
+
+        matches.push({
+          id: uid(),
+          table: 0,
+          player1Id: byePlayerId,
+          player2Id: null,
+          result: "BYE"
+        });
+      }
+
       while (pool.length > 0) {
         const p1 = pool.shift();
-        if (used.has(p1)) continue;
-
-        if (pool.length === 0) {
-          matches.push({
-            id: uid(),
-            table: matches.length + 1,
-            player1Id: p1,
-            player2Id: null,
-            result: "BYE"
-          });
-          used.add(p1);
-          break;
-        }
-
         let opponentIndex = findSwissOpponentIndex(p1, pool);
-
-        if (opponentIndex === -1) {
-          opponentIndex = 0;
-        }
-
+        if (opponentIndex === -1) opponentIndex = 0;
         const p2 = pool.splice(opponentIndex, 1)[0];
 
         matches.push({
@@ -618,53 +642,43 @@
           player2Id: p2,
           result: ""
         });
-
-        used.add(p1);
-        used.add(p2);
       }
+
+      const byeMatch = matches.find(m => !m.player2Id);
+      const normalMatches = matches.filter(m => m.player2Id);
+
+      normalMatches.forEach((m, i) => m.table = i + 1);
+      if (byeMatch) byeMatch.table = "BYE";
 
       state.rounds.push({
         roundNumber,
+        finalized: false,
         matches
       });
+
       state.currentRound = roundNumber;
     }
 
-    function findSwissOpponentIndex(playerId, pool) {
-      const priorOpponents = new Set();
-
-      for (const round of state.rounds) {
-        for (const match of round.matches) {
-          if (match.player1Id === playerId && match.player2Id) priorOpponents.add(match.player2Id);
-          if (match.player2Id === playerId && match.player1Id) priorOpponents.add(match.player1Id);
-        }
-      }
-
-      for (let i = 0; i < pool.length; i++) {
-        const candidate = pool[i];
-        if (!priorOpponents.has(candidate)) return i;
-      }
-
-      return -1;
-    }
-
-    function shuffle(arr) {
-      for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-      }
+    function currentRoundObj() {
+      if (state.currentRound <= 0) return null;
+      return state.rounds[state.currentRound - 1] || null;
     }
 
     function currentRoundIsComplete() {
-      if (state.currentRound === 0) return false;
-      const round = state.rounds[state.currentRound - 1];
+      const round = currentRoundObj();
+      if (!round) return false;
       return round.matches.every(m => !!m.result);
+    }
+
+    function currentRoundIsFinalized() {
+      const round = currentRoundObj();
+      return !!round?.finalized;
     }
 
     function startTournament() {
       const activePlayers = getActivePlayers();
       if (activePlayers.length < 2) {
-        alert("You need at least 2 players.");
+        alert("You need at least 2 active players.");
         return;
       }
 
@@ -679,8 +693,41 @@
       state.topCutSize = getTopCutSize(activePlayers.length);
 
       generateSwissRound();
-      render();
       saveState();
+      render();
+    }
+
+    function finalizeRound() {
+      if (!state.started) {
+        alert("Start the tournament first.");
+        return;
+      }
+
+      const round = currentRoundObj();
+      if (!round) {
+        alert("No active round.");
+        return;
+      }
+
+      if (round.finalized) {
+        alert("That round is already finalized.");
+        return;
+      }
+
+      if (!currentRoundIsComplete()) {
+        alert("All matches must have results before finalizing.");
+        return;
+      }
+
+      round.finalized = true;
+
+      if (state.currentRound >= state.maxSwissRounds) {
+        state.finishedSwiss = true;
+        beginTopCutIfNeeded();
+      }
+
+      saveState();
+      render();
     }
 
     function buildNextRound() {
@@ -690,26 +737,32 @@
       }
 
       if (state.topCutStarted) {
-        alert("Swiss is over. Use the Top Cut section now.");
+        alert("Swiss is complete. Use the Top Cut section.");
         return;
       }
 
-      if (!currentRoundIsComplete()) {
-        alert("Finish all current round results before building the next round.");
+      const round = currentRoundObj();
+      if (!round) {
+        alert("No current round.");
+        return;
+      }
+
+      if (!round.finalized) {
+        alert("Finalize the current round before building the next round.");
         return;
       }
 
       if (state.currentRound >= state.maxSwissRounds) {
         state.finishedSwiss = true;
         beginTopCutIfNeeded();
-        render();
         saveState();
+        render();
         return;
       }
 
       generateSwissRound();
-      render();
       saveState();
+      render();
     }
 
     function beginTopCutIfNeeded() {
@@ -718,8 +771,9 @@
         return;
       }
 
+      const activeIds = getActivePlayers().map(p => p.id);
       const standings = getAllPlayerStats()
-        .filter(p => state.players.find(x => x.id === p.id && !x.dropped))
+        .filter(p => activeIds.includes(p.id))
         .slice(0, state.topCutSize);
 
       if (standings.length < state.topCutSize) {
@@ -727,11 +781,15 @@
         return;
       }
 
-      state.topCutStarted = true;
-      state.topCutRounds = [];
+      if (state.topCutRounds.length > 0) {
+        state.topCutStarted = true;
+        return;
+      }
 
-      const seeds = standings.map((p, index) => ({
-        seed: index + 1,
+      state.topCutStarted = true;
+
+      const seeds = standings.map((p, i) => ({
+        seed: i + 1,
         playerId: p.id,
         name: p.name
       }));
@@ -740,51 +798,15 @@
 
       if (state.topCutSize === 4) {
         matches = [
-          {
-            id: uid(),
-            label: "Semifinal 1",
-            player1Id: seeds[0].playerId,
-            player2Id: seeds[3].playerId,
-            result: ""
-          },
-          {
-            id: uid(),
-            label: "Semifinal 2",
-            player1Id: seeds[1].playerId,
-            player2Id: seeds[2].playerId,
-            result: ""
-          }
+          { id: uid(), label: "Semifinal 1", player1Id: seeds[0].playerId, player2Id: seeds[3].playerId, result: "" },
+          { id: uid(), label: "Semifinal 2", player1Id: seeds[1].playerId, player2Id: seeds[2].playerId, result: "" }
         ];
-      } else if (state.topCutSize === 8) {
+      } else {
         matches = [
-          {
-            id: uid(),
-            label: "Quarterfinal 1",
-            player1Id: seeds[0].playerId,
-            player2Id: seeds[7].playerId,
-            result: ""
-          },
-          {
-            id: uid(),
-            label: "Quarterfinal 2",
-            player1Id: seeds[3].playerId,
-            player2Id: seeds[4].playerId,
-            result: ""
-          },
-          {
-            id: uid(),
-            label: "Quarterfinal 3",
-            player1Id: seeds[1].playerId,
-            player2Id: seeds[6].playerId,
-            result: ""
-          },
-          {
-            id: uid(),
-            label: "Quarterfinal 4",
-            player1Id: seeds[2].playerId,
-            player2Id: seeds[5].playerId,
-            result: ""
-          }
+          { id: uid(), label: "Quarterfinal 1", player1Id: seeds[0].playerId, player2Id: seeds[7].playerId, result: "" },
+          { id: uid(), label: "Quarterfinal 2", player1Id: seeds[3].playerId, player2Id: seeds[4].playerId, result: "" },
+          { id: uid(), label: "Quarterfinal 3", player1Id: seeds[1].playerId, player2Id: seeds[6].playerId, result: "" },
+          { id: uid(), label: "Quarterfinal 4", player1Id: seeds[2].playerId, player2Id: seeds[5].playerId, result: "" }
         ];
       }
 
@@ -796,13 +818,8 @@
 
     function resolveTopCutWinner(match) {
       if (!match.result) return null;
-
-      const p1Wins = ["2-0-0", "2-1-0", "1-0-1"].includes(match.result);
-      const p2Wins = ["0-2-0", "1-2-0", "0-1-1"].includes(match.result);
-
-      if (p1Wins) return match.player1Id;
-      if (p2Wins) return match.player2Id;
-
+      if (["2-0-0", "2-1-0", "1-0-1"].includes(match.result)) return match.player1Id;
+      if (["0-2-0", "1-2-0", "0-1-1"].includes(match.result)) return match.player2Id;
       return null;
     }
 
@@ -813,7 +830,6 @@
       if (!currentStage.matches.every(m => !!m.result)) return;
 
       const winners = currentStage.matches.map(resolveTopCutWinner);
-
       if (winners.some(w => !w)) return;
 
       if (winners.length === 1) {
@@ -821,14 +837,11 @@
         return;
       }
 
-      let nextName = "Final";
-      if (winners.length === 4) nextName = "Semifinals";
-      if (winners.length === 2) nextName = "Final";
+      const existingNames = state.topCutRounds.map(r => r.name + "|" + r.matches.length);
+      let nextName = winners.length === 4 ? "Semifinals" : "Final";
+      const signature = nextName + "|" + (winners.length / 2);
 
-      const existingStageNames = new Set(state.topCutRounds.map(r => r.name + "|" + r.matches.length));
-      const nextSignature = nextName + "|" + (winners.length / 2);
-
-      if (existingStageNames.has(nextSignature)) return;
+      if (existingNames.includes(signature)) return;
 
       const matches = [];
       for (let i = 0; i < winners.length; i += 2) {
@@ -849,26 +862,30 @@
 
     function updateMatchResult(roundIndex, matchId, value) {
       const round = state.rounds[roundIndex];
+      if (!round || round.finalized) return;
+
       const match = round.matches.find(m => m.id === matchId);
       if (!match) return;
-      match.result = value;
-      render();
+
+      if (!match.player2Id && value !== "BYE") {
+        match.result = "BYE";
+      } else {
+        match.result = value;
+      }
+
       saveState();
+      render();
     }
 
     function updateTopCutResult(stageIndex, matchId, value) {
       const stage = state.topCutRounds[stageIndex];
+      if (!stage) return;
       const match = stage.matches.find(m => m.id === matchId);
       if (!match) return;
       match.result = value;
       maybeAdvanceTopCut();
-      render();
       saveState();
-    }
-
-    function getPlayerName(id) {
-      const p = state.players.find(x => x.id === id);
-      return p ? p.name : "Unknown";
+      render();
     }
 
     function renderPlayers() {
@@ -877,27 +894,62 @@
 
       state.players.forEach((player, idx) => {
         const tr = document.createElement("tr");
+
+        const statusText = player.dropped ? "Dropped" : "Active";
+        const toggleLabel = player.dropped ? "Undrop" : "Drop";
+        const canRemove = !state.started;
+
         tr.innerHTML = `
           <td>${idx + 1}</td>
           <td>${escapeHtml(player.name)}</td>
-          <td><button class="btn-red small" data-remove-player="${player.id}">Remove</button></td>
+          <td class="${player.dropped ? "danger" : "success"}">${statusText}</td>
+          <td>
+            ${state.started
+              ? `<button class="${player.dropped ? "btn-blue" : "btn-gray"} small" data-toggle-drop="${player.id}">${toggleLabel}</button>`
+              : `<span class="muted">Available after start</span>`
+            }
+          </td>
+          <td>
+            ${canRemove
+              ? `<button class="btn-red small" data-remove-player="${player.id}">Remove</button>`
+              : `<span class="muted">Locked</span>`
+            }
+          </td>
         `;
         tbody.appendChild(tr);
       });
 
       document.querySelectorAll("[data-remove-player]").forEach(btn => {
         btn.onclick = () => {
-          if (state.started) {
-            alert("Remove players before starting, or add drop logic later.");
-            return;
-          }
           state.players = state.players.filter(p => p.id !== btn.dataset.removePlayer);
-          render();
           saveState();
+          render();
         };
       });
 
-      document.getElementById("playerCountPill").textContent = `${state.players.length} Player${state.players.length === 1 ? "" : "s"}`;
+      document.querySelectorAll("[data-toggle-drop]").forEach(btn => {
+        btn.onclick = () => {
+          const player = getPlayerById(btn.dataset.toggleDrop);
+          if (!player) return;
+
+          const round = currentRoundObj();
+
+          if (round && !round.finalized) {
+            const pairedThisRound = round.matches.some(m => m.player1Id === player.id || m.player2Id === player.id);
+            if (pairedThisRound) {
+              alert("You cannot drop or undrop a player during an unfinalized round.");
+              return;
+            }
+          }
+
+          player.dropped = !player.dropped;
+          saveState();
+          render();
+        };
+      });
+
+      document.getElementById("playerCountPill").textContent =
+        `${state.players.length} Player${state.players.length === 1 ? "" : "s"}`;
     }
 
     function renderStandings() {
@@ -925,17 +977,26 @@
 
     function renderPairings() {
       const container = document.getElementById("pairingsContainer");
+      const status = document.getElementById("roundStatusText");
+
       if (!state.started || state.currentRound === 0) {
-        container.innerHTML = `<div class="muted">No round yet.</div>`;
+        status.textContent = "No round yet.";
+        container.innerHTML = `<div class="muted">No round pairings available.</div>`;
         return;
       }
 
-      const round = state.rounds[state.currentRound - 1];
+      const round = currentRoundObj();
+      const locked = round.finalized;
+
+      status.innerHTML = locked
+        ? `<span class="success">Round ${round.roundNumber} finalized.</span> Standings are locked in.`
+        : `<span class="warn">Round ${round.roundNumber} not finalized.</span> Results may be entered, but standings do not update until finalization.`;
 
       container.innerHTML = round.matches.map(match => {
-        const player1 = getPlayerName(match.player1Id);
-        const player2 = match.player2Id ? getPlayerName(match.player2Id) : "BYE";
-        const optionsHtml = RESULT_OPTIONS
+        const player1 = getPlayerById(match.player1Id)?.name || "Unknown";
+        const player2 = match.player2Id ? (getPlayerById(match.player2Id)?.name || "Unknown") : "BYE";
+
+        const options = RESULT_OPTIONS
           .filter(opt => match.player2Id ? opt.value !== "BYE" : opt.value === "BYE" || opt.value === "")
           .map(opt => `<option value="${opt.value}" ${match.result === opt.value ? "selected" : ""}>${opt.label}</option>`)
           .join("");
@@ -944,7 +1005,7 @@
           <div class="pairing-box">
             <div class="player-line">
               <strong>Table ${match.table}</strong>
-              <span class="pill">${match.player2Id ? "Match" : "BYE"}</span>
+              <span class="pill">${match.player2Id ? (locked ? "Locked" : "Open") : "BYE"}</span>
             </div>
             <div class="player-line">
               <span>${escapeHtml(player1)}</span>
@@ -953,8 +1014,8 @@
             </div>
             <div class="row" style="margin-top:10px;">
               <label>Result</label>
-              <select data-round-index="${state.currentRound - 1}" data-match-id="${match.id}">
-                ${optionsHtml}
+              <select data-round-index="${state.currentRound - 1}" data-match-id="${match.id}" ${locked ? "disabled" : ""}>
+                ${options}
               </select>
             </div>
           </div>
@@ -964,55 +1025,6 @@
       container.querySelectorAll("select[data-match-id]").forEach(sel => {
         sel.onchange = () => {
           updateMatchResult(Number(sel.dataset.roundIndex), sel.dataset.matchId, sel.value);
-        };
-      });
-    }
-
-    function renderTopCut() {
-      const container = document.getElementById("topCutContainer");
-      const pill = document.getElementById("topCutPill");
-
-      if (!state.started) {
-        pill.textContent = "Not started";
-        container.innerHTML = `<div class="muted">Start a tournament first.</div>`;
-        return;
-      }
-
-      if (!state.finishedSwiss && state.currentRound < state.maxSwissRounds) {
-        pill.textContent = "Swiss in progress";
-        container.innerHTML = `<div class="muted">Top cut unlocks after Swiss round ${state.maxSwissRounds} is complete.</div>`;
-        return;
-      }
-
-      if (state.topCutSize === 0) {
-        pill.textContent = "No top cut";
-        const standings = getAllPlayerStats();
-        const winner = standings[0];
-        container.innerHTML = winner
-          ? `<div class="success"><strong>No top cut for this player count.</strong> Swiss winner: ${escapeHtml(winner.name)}</div>`
-          : `<div class="muted">No top cut.</div>`;
-        return;
-      }
-
-      pill.textContent = `Top ${state.topCutSize}`;
-
-      if (!state.topCutStarted) {
-        beginTopCutIfNeeded();
-      }
-
-      if (state.championId) {
-        container.innerHTML = `
-          <div class="success big-center">Champion: ${escapeHtml(getPlayerName(state.championId))}</div>
-          ${renderTopCutStagesHtml()}
-        `;
-        return;
-      }
-
-      container.innerHTML = renderTopCutStagesHtml();
-
-      container.querySelectorAll("select[data-top-stage-index]").forEach(sel => {
-        sel.onchange = () => {
-          updateTopCutResult(Number(sel.dataset.topStageIndex), sel.dataset.topMatchId, sel.value);
         };
       });
     }
@@ -1035,10 +1047,10 @@
             <div class="bracket-match">
               <div><strong>${escapeHtml(match.label)}</strong></div>
               <div class="player-line">
-                <span class="${winnerId === match.player1Id ? "winner" : ""}">${escapeHtml(getPlayerName(match.player1Id))}</span>
+                <span class="${winnerId === match.player1Id ? "winner" : ""}">${escapeHtml(getPlayerById(match.player1Id)?.name || "Unknown")}</span>
               </div>
               <div class="player-line">
-                <span class="${winnerId === match.player2Id ? "winner" : ""}">${escapeHtml(getPlayerName(match.player2Id))}</span>
+                <span class="${winnerId === match.player2Id ? "winner" : ""}">${escapeHtml(getPlayerById(match.player2Id)?.name || "Unknown")}</span>
               </div>
               <div class="row" style="margin-top:10px;">
                 <label>Result</label>
@@ -1054,21 +1066,66 @@
         return `
           <div style="margin-bottom:16px;">
             <h3>${escapeHtml(stage.name)}</h3>
-            <div class="topcut-bracket">
-              ${matchesHtml}
-            </div>
+            <div class="topcut-bracket">${matchesHtml}</div>
           </div>
         `;
       }).join("");
     }
 
+    function renderTopCut() {
+      const container = document.getElementById("topCutContainer");
+      const pill = document.getElementById("topCutPill");
+
+      if (!state.started) {
+        pill.textContent = "Not started";
+        container.innerHTML = `<div class="muted">Start a tournament first.</div>`;
+        return;
+      }
+
+      if (!state.finishedSwiss) {
+        pill.textContent = "Swiss in progress";
+        container.innerHTML = `<div class="muted">Top cut unlocks after Swiss round ${state.maxSwissRounds} is finalized.</div>`;
+        return;
+      }
+
+      if (state.topCutSize === 0) {
+        pill.textContent = "No top cut";
+        const activeIds = getActivePlayers().map(p => p.id);
+        const winner = getAllPlayerStats().filter(p => activeIds.includes(p.id))[0];
+        container.innerHTML = winner
+          ? `<div class="success"><strong>No top cut for this player count.</strong> Swiss winner: ${escapeHtml(winner.name)}</div>`
+          : `<div class="muted">No top cut.</div>`;
+        return;
+      }
+
+      pill.textContent = `Top ${state.topCutSize}`;
+
+      if (!state.topCutStarted) beginTopCutIfNeeded();
+
+      if (state.championId) {
+        container.innerHTML = `
+          <div class="success"><strong>Champion:</strong> ${escapeHtml(getPlayerById(state.championId)?.name || "Unknown")}</div>
+          <div class="spacer"></div>
+          ${renderTopCutStagesHtml()}
+        `;
+      } else {
+        container.innerHTML = renderTopCutStagesHtml();
+      }
+
+      container.querySelectorAll("select[data-top-stage-index]").forEach(sel => {
+        sel.onchange = () => {
+          updateTopCutResult(Number(sel.dataset.topStageIndex), sel.dataset.topMatchId, sel.value);
+        };
+      });
+    }
+
     function renderSetupSummary() {
-      const playerCount = state.players.length;
+      const playerCount = getActivePlayers().length;
       const rounds = getAutoSwissRounds(playerCount);
       const topCut = getTopCutSize(playerCount);
 
       document.getElementById("setupSummary").innerHTML = playerCount > 0
-        ? `Players: <strong>${playerCount}</strong> | Swiss rounds: <strong>${rounds}</strong> | Top cut: <strong>${topCut === 0 ? "None" : "Top " + topCut}</strong>`
+        ? `Active players: <strong>${playerCount}</strong> | Swiss rounds: <strong>${rounds}</strong> | Top cut: <strong>${topCut === 0 ? "None" : "Top " + topCut}</strong>`
         : `Add players to begin.`;
 
       document.getElementById("roundInfoPill").textContent = `Rounds: ${playerCount > 0 ? rounds : 0}`;
@@ -1083,7 +1140,6 @@
     }
 
     function render() {
-      state.eventName = document.getElementById("eventName").value || state.eventName || "";
       renderPlayers();
       renderStandings();
       renderPairings();
@@ -1094,6 +1150,7 @@
 
     function resetTournament() {
       if (!confirm("Reset the tournament?")) return;
+
       state = {
         eventName: "",
         started: false,
@@ -1107,12 +1164,14 @@
         topCutRounds: [],
         championId: null
       };
+
       document.getElementById("eventName").value = "";
-      render();
       saveState();
+      render();
     }
 
     function saveState() {
+      state.eventName = document.getElementById("eventName").value.trim();
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }
 
@@ -1138,8 +1197,8 @@
 
       state.players.push(createPlayer(name));
       input.value = "";
-      render();
       saveState();
+      render();
     }
 
     function loadSamplePlayers() {
@@ -1155,11 +1214,12 @@
       ];
 
       state.players = sample.map(createPlayer);
-      render();
       saveState();
+      render();
     }
 
     document.getElementById("addPlayerBtn").onclick = addPlayerFromInput;
+
     document.getElementById("playerName").addEventListener("keydown", e => {
       if (e.key === "Enter") addPlayerFromInput();
     });
@@ -1172,8 +1232,8 @@
         return;
       }
       state.players = [];
-      render();
       saveState();
+      render();
     };
 
     document.getElementById("startTournamentBtn").onclick = () => {
@@ -1181,11 +1241,11 @@
       startTournament();
     };
 
+    document.getElementById("finalizeRoundBtn").onclick = finalizeRound;
     document.getElementById("buildNextRoundBtn").onclick = buildNextRound;
     document.getElementById("resetTournamentBtn").onclick = resetTournament;
 
     document.getElementById("saveBtn").onclick = () => {
-      state.eventName = document.getElementById("eventName").value.trim();
       saveState();
       alert("Saved.");
     };
