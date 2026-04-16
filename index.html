@@ -407,6 +407,11 @@
       players: [],
       rounds: [],
       maxRounds: 0,
+      topCut: null,
+      streamRotation: {
+        index: 0,
+        intervalId: null
+      },
       timer: {
         totalSeconds: 50 * 60,
         remainingSeconds: 50 * 60,
@@ -1279,7 +1284,10 @@
       state.players = players;
       state.rounds = [];
       state.topCut = null;
+      state.streamRotation = state.streamRotation || { index: 0, intervalId: null };
       state.streamRotation.index = 0;
+      if (state.streamRotation.intervalId) clearInterval(state.streamRotation.intervalId);
+      state.streamRotation.intervalId = null;
       state.maxRounds = getMaxRounds(players.length);
       resetTimer();
       render();
@@ -1307,6 +1315,10 @@
       state.players = Array.isArray(data.players) ? data.players : [];
       state.rounds = Array.isArray(data.rounds) ? data.rounds : [];
       state.topCut = data.topCut || null;
+      state.streamRotation = {
+        index: Number(data.streamRotation?.index || 0),
+        intervalId: null
+      };
       state.maxRounds = Number(data.maxRounds || getMaxRounds(state.players.length));
       state.timer = {
         totalSeconds: Number(data.timer?.totalSeconds || state.roundMinutes * 60),
