@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MTG Judge App</title>
+
+<style>
+body { font-family: Arial; background:#0f1630; color:white; padding:20px; }
+button { padding:10px; margin:5px; }
+textarea { width:100%; height:120px; }
+table { width:100%; margin-top:10px; border-collapse: collapse; }
+td, th { padding:8px; border-bottom:1px solid #333; }
+</style>
+
+</head>
+<body>
+
+<h2>MTG 1v1 Judge App</h2>
+
+<textarea id="players" placeholder="Enter players (one per line)"></textarea><br>
+
+<button onclick="startEvent()">Start Event</button>
+<button onclick="buildRound()">Build Next Round</button>
+<button onclick="finalizeRound()">Finalize Round</button>
+
+<h3 id="roundLabel"></h3>
+
+<table id="pairings"></table>
+
+<script>
+let state = {
+  players: [],
+  rounds: []
+};
+
+function startEvent() {
+  const names = document.getElementById("players").value.split("\\n").filter(x=>x);
+  state.players = names.map((n,i)=>({
+    id:i,
+    name:n,
+    points:0,
+    opponents:[]
+  }));
+  state.rounds = [];
+  document.getElementById("roundLabel").innerText = "Event Started";
+  render();
+}
+
+function shuffle(array){
+  for(let i=array.length-1;i>0;i--){
+    let j=Math.floor(Math.random()*(i+1));
+    [array[i],array[j]]=[array[j],array[i]];
+  }
+}
+
+function buildRound(){
+  if(state.rounds.length===0){
+    shuffle(state.players);
+  } else {
+    state.players.sort((a,b)=>b.points-a.points);
+  }
+
+  let pairings=[];
+  let used=[];
+
+  for(let i=0;i<state.players.length;i++){
+    if(used.includes(i)) continue;
+
+    for(let j=i+1;j<state.players.length;j++){
+      if(used.includes(j)) continue;
+
+      if(!state.players[i].opponents.includes(state.players[j].id)){
+        pairings.push({a:i,b:j});
+        used.push(i,j);
+        break;
+      }
+    }
+  }
+
+  state.rounds.push({pairings, finalized:false});
+  document.getElementById("roundLabel").innerText = "Round "+state.rounds.length;
+  render();
+}
+
+function finalizeRound(){
+  const round = state.rounds[state.rounds.length-1];
+  if(!round) return;
+
+  round.pairings.forEach(p=>{
+    const winner = Math.random()>0.5 ? p.a : p.b;
+    state.players[winner].points +=3;
+
+    state.players[p.a].opponents.push(state.players[p.b].id);
+    state.players[p.b].opponents.push(state.players[p.a].id);
+  });
+
+  round.finalized = true;
+  render();
+}
+
+function render(){
+  let html = "<tr><th>Table</th><th>Player A</th><th>Player B</th></tr>";
+
+  const round = state.rounds[state.rounds.length-1];
+  if(!round){
+    document.getElementById("pairings").innerHTML="";
+    return;
+  }
+
+  round.pairings.forEach((p,i)=>{
+    html += `<tr>
+      <td>${i+1}</td>
+      <td>${state.players[p.a].name}</td>
+      <td>${state.players[p.b].name}</td>
+    </tr>`;
+  });
+
+  document.getElementById("pairings").innerHTML = html;
+}
+</script>
+
+</body>
+</html>
