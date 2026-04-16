@@ -217,6 +217,7 @@
             <button class="btn-green" id="startTournamentBtn">Start Tournament</button>
             <button class="btn-blue" id="finalizeRoundBtn">Finalize Round</button>
             <button class="btn-blue" id="buildNextRoundBtn">Build Next Round</button>
+            <button class="btn-red" id="undoLastRoundBtn">Undo Last Round</button>
             <button class="btn-red" id="resetTournamentBtn">Reset Tournament</button>
           </div>
 
@@ -237,6 +238,7 @@
           <div class="muted">• 17 or more players: Top 8</div>
           <div class="muted">Match points: Win 3 | Draw 1 | Loss 0 | BYE 3</div>
           <div class="muted">Standings update only after round finalization.</div>
+          <div class="muted">Undo Last Round removes the most recently created Swiss round.</div>
         </div>
       </div>
     </div>
@@ -311,7 +313,7 @@
   </div>
 
   <script>
-    const STORAGE_KEY = "mtg_swiss_pairings_state_v3_finalize_fix";
+    const STORAGE_KEY = "mtg_swiss_pairings_state_v4_undo_round_fix";
 
     const RESULT_OPTIONS = [
       { value: "", label: "-- Select Result --" },
@@ -765,6 +767,42 @@
       render();
     }
 
+    function undoLastRound() {
+      if (!state.started) {
+        alert("No tournament is in progress.");
+        return;
+      }
+
+      if (state.topCutRounds.length > 0 || state.topCutStarted || state.championId) {
+        alert("Undo Last Round only works during Swiss before Top Cut has begun.");
+        return;
+      }
+
+      if (state.rounds.length === 0 || state.currentRound === 0) {
+        alert("There is no round to undo.");
+        return;
+      }
+
+      const round = currentRoundObj();
+      if (!round) {
+        alert("There is no current round to undo.");
+        return;
+      }
+
+      const confirmMsg = round.finalized
+        ? `Undo finalized Round ${round.roundNumber}? This will remove that round and rewind standings.`
+        : `Undo unfinalized Round ${round.roundNumber}? This will remove that round.`;
+
+      if (!confirm(confirmMsg)) return;
+
+      state.rounds.pop();
+      state.currentRound = state.rounds.length;
+      state.finishedSwiss = false;
+
+      saveState();
+      render();
+    }
+
     function beginTopCutIfNeeded() {
       if (state.topCutSize <= 0) {
         state.topCutStarted = false;
@@ -937,7 +975,7 @@
           if (round && !round.finalized) {
             const pairedThisRound = round.matches.some(m => m.player1Id === player.id || m.player2Id === player.id);
             if (pairedThisRound) {
-              alert("You cannot drop or undrop a player during an unfinalized round.");
+              alert("You cannot drop or undrop a player during an unfinalized round. Undo the current round first if you need to repair pairings.");
               return;
             }
           }
@@ -989,7 +1027,7 @@
       const locked = round.finalized;
 
       status.innerHTML = locked
-        ? `<span class="success">Round ${round.roundNumber} finalized.</span> Standings are locked in.`
+        ? `<span class="success">Round ${round.roundNumber} finalized.</span> Standings are locked in. You may undo this round if you need to repair drops or pairings.`
         : `<span class="warn">Round ${round.roundNumber} not finalized.</span> Results may be entered, but standings do not update until finalization.`;
 
       container.innerHTML = round.matches.map(match => {
@@ -1243,6 +1281,7 @@
 
     document.getElementById("finalizeRoundBtn").onclick = finalizeRound;
     document.getElementById("buildNextRoundBtn").onclick = buildNextRound;
+    document.getElementById("undoLastRoundBtn").onclick = undoLastRound;
     document.getElementById("resetTournamentBtn").onclick = resetTournament;
 
     document.getElementById("saveBtn").onclick = () => {
