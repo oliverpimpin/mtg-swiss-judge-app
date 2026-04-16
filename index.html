@@ -1,1430 +1,1330 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MTG 1v1 Swiss Judge App - Build v3.1</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MTG 1v1 Judge App</title>
   <style>
-    :root {
-      --bg: #0b1020;
-      --panel: #131a2d;
-      --panel-2: #19213a;
-      --text: #edf2ff;
-      --muted: #9dacd1;
-      --accent: #78a7ff;
-      --accent-2: #9ee6b1;
-      --danger: #ff7f8f;
-      --warning: #ffd27f;
-      --border: #2a365e;
-      --shadow: 0 10px 30px rgba(0,0,0,.25);
-      --radius: 18px;
+    :root{
+      --bg:#0b1020;
+      --panel:#131a2d;
+      --panel2:#19213a;
+      --text:#edf2ff;
+      --muted:#9dacd1;
+      --accent:#78a7ff;
+      --good:#9ee6b1;
+      --warn:#ffd27f;
+      --danger:#ff7f8f;
+      --border:#2a365e;
     }
-    * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; background: linear-gradient(180deg, #09101f, #0f1630 55%, #0d1527); color: var(--text); font-family: Inter, Segoe UI, Roboto, Arial, sans-serif; }
-    body { min-height: 100vh; }
-    .app { max-width: 1500px; margin: 0 auto; padding: 18px; }
-    h1, h2, h3 { margin: 0; }
-    .topbar {
-      display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap;
-      margin-bottom: 16px;
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Arial,Helvetica,sans-serif;
+      background:linear-gradient(180deg,#09101f,#0f1630 55%,#0d1527);
+      color:var(--text);
     }
-    .brand { display: flex; flex-direction: column; gap: 4px; }
-    .brand small { color: var(--muted); }
-    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; }
-    button, select, input, textarea {
-      font: inherit; border-radius: 12px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text);
+    .app{max-width:1500px;margin:0 auto;padding:16px}
+    .topbar,.spread,.flex{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    .layout{display:grid;grid-template-columns:380px 1fr;gap:16px}
+    .stack{display:grid;gap:12px}
+    .panel{
+      background:rgba(19,26,45,.95);
+      border:1px solid var(--border);
+      border-radius:18px;
+      overflow:hidden;
     }
-    button {
-      padding: 10px 14px; cursor: pointer; box-shadow: var(--shadow);
-      transition: transform .12s ease, opacity .12s ease, background .12s ease;
+    .panel-head{padding:14px 16px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.03)}
+    .panel-body{padding:16px}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    .metric{
+      background:var(--panel2);
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:14px;
+      min-height:90px;
     }
-    button:hover { transform: translateY(-1px); }
-    button:disabled { opacity: .45; cursor: not-allowed; transform: none; }
-    .primary { background: linear-gradient(180deg, #5d8fff, #4576e0); }
-    .good { background: linear-gradient(180deg, #2f9b61, #24754a); }
-    .warn { background: linear-gradient(180deg, #a57a27, #7f5d1d); }
-    .danger { background: linear-gradient(180deg, #b25166, #8b374b); }
-    .ghost { background: #1a2240; }
-    .layout { display: grid; grid-template-columns: 380px 1fr; gap: 16px; }
-    .panel {
-      background: rgba(19,26,45,.92); border: 1px solid var(--border); border-radius: var(--radius);
-      box-shadow: var(--shadow); overflow: hidden;
+    .metric-label{font-size:13px;color:var(--muted)}
+    .metric-value{font-size:28px;font-weight:700;margin-top:6px}
+    .metric-sub{font-size:12px;color:var(--muted);margin-top:4px}
+    input,select,textarea,button{
+      font:inherit;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background:var(--panel2);
+      color:var(--text);
     }
-    .panel h2 { font-size: 18px; }
-    .panel-head { padding: 14px 16px; border-bottom: 1px solid var(--border); background: rgba(255,255,255,.02); }
-    .panel-body { padding: 16px; }
-    .stack { display: grid; gap: 12px; }
-    .field { display: grid; gap: 6px; }
-    .field label { font-size: 13px; color: var(--muted); }
-    .field input, .field textarea, .field select { padding: 10px 12px; width: 100%; }
-    textarea { min-height: 160px; resize: vertical; }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-    .metric {
-      background: var(--panel-2); border: 1px solid var(--border); border-radius: 16px; padding: 14px;
-      min-height: 92px;
+    input,select,textarea{padding:10px 12px;width:100%}
+    textarea{min-height:170px;resize:vertical}
+    button{padding:10px 14px;cursor:pointer}
+    button:hover{filter:brightness(1.06)}
+    button:disabled{opacity:.45;cursor:not-allowed}
+    .primary{background:#4576e0}
+    .good{background:#24754a}
+    .warn{background:#7f5d1d}
+    .danger{background:#8b374b}
+    .ghost{background:#1a2240}
+    .tiny{font-size:12px;color:var(--muted)}
+    .tag{
+      display:inline-block;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:var(--panel2);
+      font-size:12px;
     }
-    .metric-label { color: var(--muted); font-size: 13px; }
-    .metric-value { font-size: 28px; font-weight: 700; margin-top: 6px; }
-    .metric-sub { color: var(--muted); margin-top: 4px; font-size: 12px; }
-    .status-pill {
-      display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 999px; font-size: 13px;
-      border: 1px solid var(--border); background: var(--panel-2);
+    .status-pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:var(--panel2);
+      font-size:13px;
     }
-    .status-pill.goodish { color: var(--accent-2); }
-    .status-pill.warnish { color: var(--warning); }
-    .status-pill.badish { color: var(--danger); }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 10px 8px; border-bottom: 1px solid rgba(255,255,255,.07); text-align: left; font-size: 14px; }
-    th { color: var(--muted); font-weight: 600; }
-    tbody tr:hover { background: rgba(255,255,255,.02); }
-    .results-select { min-width: 110px; padding: 8px 10px; }
-    .tag {
-      display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; font-size: 12px; border-radius: 999px;
-      background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08);
+    .mono{font-family:Consolas,Menlo,monospace}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px 8px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;font-size:14px;vertical-align:top}
+    th{color:var(--muted)}
+    .pairing-missing{background:rgba(255,127,143,.08)}
+    .pairing-finalized{opacity:.95}
+    .history-item{
+      background:var(--panel2);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:10px 12px;
     }
-    .pairing-missing { outline: 1px solid rgba(255,127,143,.7); background: rgba(255,127,143,.07); }
-    .pairing-finalized { opacity: .9; }
-    .history-item {
-      padding: 12px; border: 1px solid var(--border); background: var(--panel-2); border-radius: 14px;
-      display: grid; gap: 8px;
+    .topcut-box{
+      background:var(--panel2);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:12px;
     }
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-    .tiny { font-size: 12px; color: var(--muted); }
-    .right { text-align: right; }
-    .flex { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-    .spread { display: flex; justify-content: space-between; gap: 12px; align-items: center; flex-wrap: wrap; }
-    .hidden { display: none !important; }
-
-    .stream-mode .app > :not(.stream-stage) { display: none; }
-    .stream-stage { display: none; }
-    .stream-mode .stream-stage {
-      display: block; min-height: 100vh; padding: 28px; background: #050814;
+    .stream-screen{
+      position:fixed;
+      inset:0;
+      background:#050913;
+      color:white;
+      z-index:9999;
+      display:none;
+      flex-direction:column;
+      padding:18px;
+      overflow:auto;
     }
-    .stream-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
-    .stream-title { font-size: 34px; font-weight: 800; }
-    .stream-sub { color: #c8d4ff; font-size: 18px; }
-    .stream-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px;
+    .stream-screen.active{display:flex}
+    .stream-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-bottom:16px;
+      flex-wrap:wrap;
     }
-    .stream-card {
-      border-radius: 24px; border: 1px solid #2e3c6c; background: linear-gradient(180deg, #111936, #0d142c);
-      padding: 20px; box-shadow: 0 20px 60px rgba(0,0,0,.35);
+    .stream-title{font-size:34px;font-weight:700}
+    .stream-sub{font-size:16px;color:#b9c7ef}
+    .stream-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:16px;
     }
-    .stream-table { color: #97b5ff; font-size: 16px; font-weight: 700; }
-    .stream-players { margin-top: 14px; display: grid; gap: 12px; }
-    .stream-player { font-size: 28px; font-weight: 800; line-height: 1.15; }
-    .stream-vs { color: #94a7d8; text-transform: uppercase; letter-spacing: .12em; font-size: 12px; }
-    .stream-badge { margin-top: 14px; display: inline-flex; padding: 6px 10px; border-radius: 999px; background: rgba(120,167,255,.12); color: #bdd3ff; font-size: 12px; }
-
-    .override-grid, .topcut-grid { display: grid; gap: 10px; }
-    .override-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-    .override-warning { color: var(--warning); }
-    .topcut-rounds { display: grid; gap: 12px; }
-    .topcut-round {
-      border: 1px solid var(--border); border-radius: 14px; padding: 12px; background: var(--panel-2);
-      display: grid; gap: 10px;
+    .stream-card{
+      border:1px solid #2a365e;
+      border-radius:18px;
+      padding:16px;
+      background:#0e1730;
     }
-    .topcut-match {
-      border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 10px; background: rgba(255,255,255,.03);
-      display: grid; gap: 8px;
+    .stream-table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:22px;
     }
-    .winner-select { width: 100%; padding: 8px 10px; }
-    .champion-banner {
-      padding: 14px 16px; border-radius: 16px; background: linear-gradient(180deg, #224737, #183127);
-      border: 1px solid rgba(158,230,177,.35); color: #dff9e8; font-weight: 700;
+    .stream-table td,.stream-table th{
+      padding:12px 10px;
+      border-bottom:1px solid rgba(255,255,255,.12);
     }
-    .stream-layout { display: grid; grid-template-columns: 1.25fr .75fr; gap: 18px; }
-    .stream-spotlight { display: grid; gap: 18px; }
-    .stream-spotlight .stream-card { min-height: 280px; }
-    .stream-side { display: grid; gap: 18px; }
-    .stream-standings-list { display: grid; gap: 10px; }
-    .stream-standing-row {
-      display: grid; grid-template-columns: 42px 1fr auto; gap: 10px; align-items: center;
-      padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+    .hidden{display:none!important}
+    @media (max-width:1100px){
+      .layout{grid-template-columns:1fr}
+      .metrics{grid-template-columns:1fr 1fr}
+      .stream-grid{grid-template-columns:1fr}
     }
-    .stream-mini { color: #9fb1df; font-size: 12px; }
-    .stream-spotlight-label { color: #97b5ff; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .14em; }
-    .stream-footer-note { color: #9fb1df; font-size: 13px; }
-
-    @media (max-width: 1100px) {
-      .layout { grid-template-columns: 1fr; }
-      .metrics { grid-template-columns: repeat(2, 1fr); }
-    }
-    @media (max-width: 720px) {
-      .metrics, .grid-2, .grid-3 { grid-template-columns: 1fr; }
-      .toolbar, .topbar { align-items: stretch; }
-      .toolbar button { width: 100%; }
+    @media (max-width:700px){
+      .metrics{grid-template-columns:1fr}
+      .grid-2,.grid-3{grid-template-columns:1fr}
     }
   </style>
 </head>
 <body>
-  <div class="app">
-    <div class="topbar">
-      <div class="brand">
-        <!-- Build v3.1 cache-bust marker -->
-        <h1>MTG 1v1 Swiss Judge App</h1>
-        <small>Offline, browser-based, and much less likely to summon Excel poltergeists.</small>
-      </div>
-      <div class="toolbar">
-        <button id="saveBtn" class="ghost">Save</button>
-        <button id="loadBtn" class="ghost">Load</button>
-        <button id="exportBtn" class="ghost">Export JSON</button>
-        <button id="streamBtn" class="primary">Stream Mode</button>
-      </div>
+<div class="app">
+  <div class="topbar">
+    <div>
+      <h1 style="margin:0;">MTG 1v1 Judge App</h1>
+      <div class="tiny">Stable single-file build</div>
     </div>
-
-    <div class="layout">
-      <div class="stack">
-        <section class="panel">
-          <div class="panel-head"><h2>Event Setup</h2></div>
-          <div class="panel-body stack">
-            <div class="field">
-              <label for="eventName">Event name</label>
-              <input id="eventName" value="1v1 Swiss Event" />
-            </div>
-            <div class="grid-2">
-              <div class="field">
-                <label for="roundMinutes">Round minutes</label>
-                <input id="roundMinutes" type="number" min="1" value="50" />
-              </div>
-              <div class="field">
-                <label for="eventDate">Event date</label>
-                <input id="eventDate" type="date" />
-              </div>
-            </div>
-            <div class="field">
-              <label for="playerInput">Players, one per line</label>
-              <textarea id="playerInput" placeholder="Alice&#10;Bob&#10;Charlie&#10;Dana"></textarea>
-            </div>
-            <div class="grid-2">
-              <button id="startBtn" class="good">Start / Reset Event</button>
-              <button id="sampleBtn" class="ghost">Load Sample Players</button>
-            </div>
-            <div class="tiny">Starting a new event clears current rounds and rebuilds the bracket from the player list above.</div>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="panel-head"><h2>Judge Mode</h2></div>
-          <div class="panel-body stack">
-            <div class="spread">
-              <span id="judgeStatus" class="status-pill warnish">No event loaded</span>
-              <span id="timerDisplay" class="status-pill">50:00</span>
-            </div>
-            <div class="grid-2">
-              <button id="buildRoundBtn" class="primary">Build Next Round</button>
-              <button id="finalizeRoundBtn" class="good">Finalize Current Round</button>
-            </div>
-            <div class="grid-2">
-              <button id="unlockRoundBtn" class="warn">Unlock Round</button>
-              <button id="dropPlayerBtn" class="danger">Drop Selected Player</button>
-            </div>
-            <div class="grid-3">
-              <button id="startTimerBtn" class="ghost">Start Timer</button>
-              <button id="pauseTimerBtn" class="ghost">Pause</button>
-              <button id="resetTimerBtn" class="ghost">Reset</button>
-            </div>
-
-            <div class="grid-2">
-              <button id="rewindBtn" class="warn">Undo / Rewind</button>
-              <button id="startTopCutBtn" class="primary">Start Top Cut</button>
-            </div>
-            <div class="field">
-              <label for="dropPlayerSelect">Selected player</label>
-              <select id="dropPlayerSelect"></select>
-            </div>
-            <div class="tiny">Judge guardrails: you cannot build the next round until the current round is finalized and all active tables have results.</div>
-          </div>
-        </section>
-
-
-        <section class="panel">
-          <div class="panel-head"><h2>Judge Override</h2></div>
-          <div class="panel-body override-grid">
-            <div class="tiny">Use this only on the current open Swiss round. The app will ask for confirmation before changing anything.</div>
-            <div class="grid-2">
-              <div class="field">
-                <label for="overridePlayerA">Player 1</label>
-                <select id="overridePlayerA"></select>
-              </div>
-              <div class="field">
-                <label for="overridePlayerB">Player 2</label>
-                <select id="overridePlayerB"></select>
-              </div>
-            </div>
-            <div class="override-actions">
-              <button id="swapPlayersBtn" class="warn">Swap Selected Players</button>
-            </div>
-            <div id="overrideHint" class="tiny override-warning">No open round to override.</div>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="panel-head"><h2>Round History</h2></div>
-          <div id="historyPanel" class="panel-body stack">
-            <div class="tiny">No rounds yet.</div>
-          </div>
-        </section>
-      </div>
-
-      <div class="stack">
-        <section class="panel">
-          <div class="panel-head"><h2>Event Dashboard</h2></div>
-          <div class="panel-body stack">
-            <div class="metrics">
-              <div class="metric">
-                <div class="metric-label">Players</div>
-                <div id="metricPlayers" class="metric-value">0</div>
-                <div id="metricPlayersSub" class="metric-sub">0 active</div>
-              </div>
-              <div class="metric">
-                <div class="metric-label">Round</div>
-                <div id="metricRound" class="metric-value">0 / 0</div>
-                <div id="metricRoundSub" class="metric-sub">Waiting to start</div>
-              </div>
-              <div class="metric">
-                <div class="metric-label">Missing results</div>
-                <div id="metricMissing" class="metric-value">0</div>
-                <div class="metric-sub">Open tables needing scores</div>
-              </div>
-              <div class="metric">
-                <div class="metric-label">Timer</div>
-                <div id="metricTimer" class="metric-value">50:00</div>
-                <div id="metricTimerSub" class="metric-sub">Ready</div>
-              </div>
-            </div>
-            <div class="flex">
-              <span id="eventSummary" class="status-pill">No event in progress</span>
-              <span id="roundState" class="status-pill">No round built</span>
-            </div>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="panel-head spread">
-            <h2>Current Pairings</h2>
-            <span class="tiny">Result codes: 2-0-0, 2-1-0, 1-2-0, 0-2-0, 1-0-1, 0-1-1, 0-0-1, ID</span>
-          </div>
-          <div class="panel-body">
-            <div style="overflow:auto;">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Table</th>
-                    <th>Player A</th>
-                    <th>Player B</th>
-                    <th>Bracket</th>
-                    <th>Protection</th>
-                    <th>Result</th>
-                  </tr>
-                </thead>
-                <tbody id="pairingsBody"></tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="panel-head"><h2>Tie-Breakers Panel</h2></div>
-          <div class="panel-body">
-            <div style="overflow:auto;">
-              <table>
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Player</th>
-                    <th>Rec</th>
-                    <th>Pts</th>
-                    <th>OMW%</th>
-                    <th>GW%</th>
-                    <th>OGW%</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody id="standingsBody"></tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="panel-head spread">
-            <h2>Top Cut</h2>
-            <div class="flex">
-              <button id="advanceTopCutBtn" class="good">Advance Top Cut</button>
-              <button id="clearTopCutBtn" class="danger">Clear Top Cut</button>
-            </div>
-          </div>
-          <div class="panel-body topcut-grid">
-            <div id="topCutSummary" class="tiny">No top cut started.</div>
-            <div id="topCutPanel" class="topcut-rounds"></div>
-          </div>
-        </section>
-
-      </div>
+    <div class="flex">
+      <button id="saveBtn" class="ghost">Save to Browser</button>
+      <button id="loadBtn" class="ghost">Load from Browser</button>
+      <button id="exportBtn" class="ghost">Export JSON</button>
+      <button id="importBtn" class="ghost">Import JSON</button>
+      <button id="streamBtn" class="primary">Stream Mode</button>
+      <input id="filePicker" type="file" accept="application/json" class="hidden" />
     </div>
   </div>
 
-  <section class="stream-stage">
-    <div class="stream-header">
-      <div>
-        <div id="streamEventTitle" class="stream-title">1v1 Swiss Event</div>
-        <div id="streamEventSub" class="stream-sub">Round 1 • Pairings</div>
-      </div>
-      <div class="toolbar">
-        <button id="streamExitBtn" class="danger">Exit Stream</button>
-      </div>
-    </div>
-    
-    <div class="stream-layout">
-      <div id="streamGrid" class="stream-spotlight"></div>
-      <div class="stream-side">
-        <div class="stream-card">
-          <div class="stream-spotlight-label">Top Standings</div>
-          <div id="streamStandings" class="stream-standings-list"></div>
-        </div>
-        <div class="stream-card">
-          <div class="stream-spotlight-label">Top Cut</div>
-          <div id="streamTopCut" class="stream-standings-list"></div>
-        </div>
-        <div class="stream-footer-note">Stream Mode Level 2: spotlight rotation, standings sidebar, and top cut visibility.</div>
-      </div>
-    </div>
-
-  </section>
-
-  <input id="filePicker" type="file" accept="application/json" class="hidden" />
-
-  <script>
-    const RESULT_CODES = ["", "2-0-0", "2-1-0", "1-2-0", "0-2-0", "1-0-1", "0-1-1", "0-0-1", "ID"];
-    const STORAGE_KEY = "mtg_1v1_swiss_judge_app_v2";
-
-    const state = {
-      eventName: "1v1 Swiss Event",
-      eventDate: "",
-      roundMinutes: 50,
-      players: [],
-      rounds: [],
-      maxRounds: 0,
-      topCut: null,
-      streamRotation: {
-        index: 0,
-        intervalId: null
-      },
-      timer: {
-        totalSeconds: 50 * 60,
-        remainingSeconds: 50 * 60,
-        running: false,
-        intervalId: null
-      }
-    };
-
-
-    function ensureStreamRotation() {
-      if (!state.streamRotation || typeof state.streamRotation !== "object") {
-        state.streamRotation = { index: 0, intervalId: null };
-      }
-      if (typeof state.streamRotation.index !== "number" || Number.isNaN(state.streamRotation.index)) {
-        state.streamRotation.index = 0;
-      }
-      if (!("intervalId" in state.streamRotation)) {
-        state.streamRotation.intervalId = null;
-      }
-      return state.streamRotation;
-    }
-
-    const el = {};
-    [
-      "eventName","roundMinutes","eventDate","playerInput","startBtn","sampleBtn","saveBtn","loadBtn","exportBtn","streamBtn",
-      "judgeStatus","timerDisplay","buildRoundBtn","finalizeRoundBtn","unlockRoundBtn","dropPlayerBtn","startTimerBtn","pauseTimerBtn","resetTimerBtn","dropPlayerSelect",
-      "historyPanel","metricPlayers","metricPlayersSub","metricRound","metricRoundSub","metricMissing","metricTimer","metricTimerSub","eventSummary","roundState",
-      "pairingsBody","standingsBody","streamEventTitle","streamEventSub","streamGrid","streamExitBtn","filePicker"
-    ].forEach(id => el[id] = document.getElementById(id));
-
-    function getMaxRounds(playerCount) {
-      if (playerCount <= 1) return 0;
-      if (playerCount <= 8) return 3;
-      if (playerCount <= 16) return 4;
-      if (playerCount <= 32) return 5;
-      if (playerCount <= 64) return 6;
-      if (playerCount <= 128) return 7;
-      return Math.ceil(Math.log2(playerCount));
-    }
-
-    function normalizePlayer(player, index = 0) {
-      return {
-        id: String(player.id),
-        name: player.name ?? `Player ${player.id}`,
-        active: player.active !== false,
-        dropped: player.dropped === true,
-        hadBye: player.hadBye === true,
-        matchPoints: Number(player.matchPoints ?? 0),
-        gameWins: Number(player.gameWins ?? 0),
-        gameLosses: Number(player.gameLosses ?? 0),
-        gameDraws: Number(player.gameDraws ?? 0),
-        matchWins: Number(player.matchWins ?? 0),
-        matchLosses: Number(player.matchLosses ?? 0),
-        matchDraws: Number(player.matchDraws ?? 0),
-        opponents: Array.isArray(player.opponents) ? player.opponents.map(String) : [],
-        initialOrder: Number.isFinite(player.initialOrder) ? player.initialOrder : index,
-      };
-    }
-
-    const HARD_FAIL_PENALTY = 1000000;
-
-    function sortPlayersForSwiss(players) {
-      players.sort((a, b) => {
-        if (b.matchPoints !== a.matchPoints) return b.matchPoints - a.matchPoints;
-        const aOMW = opponentMatchWinPct(a, players);
-        const bOMW = opponentMatchWinPct(b, players);
-        if (bOMW !== aOMW) return bOMW - aOMW;
-        const aGW = gameWinPct(a);
-        const bGW = gameWinPct(b);
-        if (bGW !== aGW) return bGW - aGW;
-        const aOGW = opponentGameWinPct(a, players);
-        const bOGW = opponentGameWinPct(b, players);
-        if (bOGW !== aOGW) return bOGW - aOGW;
-        if ((a.initialOrder ?? 0) !== (b.initialOrder ?? 0)) return (a.initialOrder ?? 0) - (b.initialOrder ?? 0);
-        return a.name.localeCompare(b.name);
-      });
-    }
-
-    function buildScoreGroups(players) {
-      const map = new Map();
-      for (const player of players) {
-        const key = String(player.matchPoints);
-        if (!map.has(key)) map.set(key, []);
-        map.get(key).push(player);
-      }
-      return map;
-    }
-
-    function chooseByePlayer(players) {
-      if (players.length % 2 === 0) return null;
-      const candidates = [...players].sort((a, b) => {
-        if (a.hadBye !== b.hadBye) return a.hadBye ? 1 : -1;
-        if (a.matchPoints !== b.matchPoints) return a.matchPoints - b.matchPoints;
-        if (gameWinPct(a) !== gameWinPct(b)) return gameWinPct(a) - gameWinPct(b);
-        return (b.initialOrder ?? 0) - (a.initialOrder ?? 0);
-      });
-      return candidates[0] ?? null;
-    }
-
-    function hasPlayed(a, b) {
-      return a.opponents.includes(String(b.id)) || b.opponents.includes(String(a.id));
-    }
-
-    function getTopTableProtectionWindow(roundNumber, groupSize, isTopScoreGroup) {
-      if (!isTopScoreGroup) return 0;
-      if (roundNumber <= 4) return Math.min(1, Math.floor(groupSize / 2));
-      return 0;
-    }
-
-    function pairingPenalty(a, b, options = {}) {
-      const { isProtectedTable = false, sameBracketPreferred = true, allowRepeatIfNeeded = false } = options;
-      let penalty = 0;
-      const isRepeat = hasPlayed(a, b);
-      if (isRepeat) penalty += allowRepeatIfNeeded ? 5000 : HARD_FAIL_PENALTY;
-      const pointGap = Math.abs(a.matchPoints - b.matchPoints);
-      penalty += pointGap * 100;
-      if (sameBracketPreferred && pointGap > 0) penalty += 250;
-      const seedGap = Math.abs((a.initialOrder ?? 0) - (b.initialOrder ?? 0));
-      penalty += Math.min(seedGap, 20);
-      if (isProtectedTable && pointGap > 0) penalty += 5000;
-      if (isProtectedTable && isRepeat) penalty += 10000;
-      return penalty;
-    }
-
-    function backtrackingPair(group, { protectedWindow, startTable, bracket }) {
-      const used = new Set();
-      const pairings = [];
-      function helper(tableOffset) {
-        const first = group.find(p => !used.has(p.id));
-        if (!first) return true;
-        used.add(first.id);
-        const candidates = group
-          .filter(p => !used.has(p.id))
-          .map(candidate => ({
-            candidate,
-            score: pairingPenalty(first, candidate, {
-              isProtectedTable: tableOffset < protectedWindow,
-              sameBracketPreferred: true
-            })
-          }))
-          .sort((a, b) => a.score - b.score);
-        for (const { candidate, score } of candidates) {
-          if (score >= HARD_FAIL_PENALTY) continue;
-          used.add(candidate.id);
-          pairings.push({
-            table: startTable + tableOffset,
-            playerA: first.id,
-            playerB: candidate.id,
-            isBye: false,
-            bracket,
-            protectedTopTable: tableOffset < protectedWindow,
-            resultCode: ""
-          });
-          if (helper(tableOffset + 1)) return true;
-          pairings.pop();
-          used.delete(candidate.id);
-        }
-        used.delete(first.id);
-        return false;
-      }
-      return helper(0) ? { pairings, unpaired: [] } : null;
-    }
-
-    function greedyPair(group, { protectedWindow, startTable, bracket }) {
-      const pool = [...group];
-      const pairings = [];
-      let tableOffset = 0;
-      while (pool.length >= 2) {
-        const first = pool.shift();
-        let bestIndex = -1;
-        let bestScore = Number.POSITIVE_INFINITY;
-        for (let i = 0; i < pool.length; i++) {
-          const score = pairingPenalty(first, pool[i], {
-            isProtectedTable: tableOffset < protectedWindow,
-            sameBracketPreferred: true
-          });
-          if (score < bestScore) {
-            bestScore = score;
-            bestIndex = i;
-          }
-        }
-        if (bestIndex === -1 || bestScore >= HARD_FAIL_PENALTY) {
-          return { pairings, unpaired: [first, ...pool] };
-        }
-        const second = pool.splice(bestIndex, 1)[0];
-        pairings.push({
-          table: startTable + tableOffset,
-          playerA: first.id,
-          playerB: second.id,
-          isBye: false,
-          bracket,
-          protectedTopTable: tableOffset < protectedWindow,
-          resultCode: ""
-        });
-        tableOffset++;
-      }
-      return { pairings, unpaired: pool.length === 1 ? [pool[0]] : [] };
-    }
-
-    function emergencyPair(players, startTable, nextRoundNumber) {
-      const pool = [...players];
-      const pairings = [];
-      let table = startTable;
-      while (pool.length >= 2) {
-        const a = pool.shift();
-        pool.sort((x, y) => {
-          return pairingPenalty(a, x, {
-            isProtectedTable: false,
-            sameBracketPreferred: false,
-            allowRepeatIfNeeded: nextRoundNumber >= 4
-          }) - pairingPenalty(a, y, {
-            isProtectedTable: false,
-            sameBracketPreferred: false,
-            allowRepeatIfNeeded: nextRoundNumber >= 4
-          });
-        });
-        const b = pool.shift();
-        pairings.push({
-          table,
-          playerA: a.id,
-          playerB: b.id,
-          isBye: false,
-          bracket: `${a.matchPoints}/${b.matchPoints}`,
-          protectedTopTable: false,
-          resultCode: ""
-        });
-        table++;
-      }
-      if (pool.length === 1) throw new Error(`Could not pair player ${pool[0].name}.`);
-      return { pairings };
-    }
-
-    function generateSwissPairings(players, nextRoundNumber = 1) {
-      const normalizedPlayers = players.map((p, i) => normalizePlayer(p, i));
-      sortPlayersForSwiss(normalizedPlayers);
-      const byePlayer = chooseByePlayer(normalizedPlayers);
-      let working = normalizedPlayers.slice();
-      if (byePlayer) working = working.filter(p => p.id !== byePlayer.id);
-      const scoreGroups = buildScoreGroups(working);
-      const orderedGroups = Array.from(scoreGroups.entries())
-        .sort((a, b) => Number(b[0]) - Number(a[0]))
-        .map(([, group]) => group);
-      const pairings = [];
-      const carry = [];
-      let table = 1;
-      for (let groupIndex = 0; groupIndex < orderedGroups.length; groupIndex++) {
-        const group = [...carry, ...orderedGroups[groupIndex]];
-        carry.length = 0;
-        const result = pairWithinGroup(group, {
-          isTopScoreGroup: groupIndex === 0,
-          nextRoundNumber,
-          startTable: table
-        });
-        pairings.push(...result.pairings);
-        table += result.pairings.length;
-        if (result.unpaired.length > 0) carry.push(...result.unpaired);
-      }
-      if (carry.length > 0) {
-        const tail = emergencyPair(carry, table, nextRoundNumber);
-        pairings.push(...tail.pairings);
-        table += tail.pairings.length;
-      }
-      if (byePlayer) {
-        pairings.push({
-          table,
-          playerA: byePlayer.id,
-          playerB: null,
-          isBye: true,
-          bracket: String(byePlayer.matchPoints),
-          protectedTopTable: false,
-          resultCode: "BYE"
-        });
-      }
-      return { pairings, byePlayerId: byePlayer?.id ?? null };
-    }
-
-    function pairWithinGroup(group, { isTopScoreGroup, nextRoundNumber, startTable }) {
-      if (group.length <= 1) return { pairings: [], unpaired: [...group] };
-      const protectedWindow = getTopTableProtectionWindow(nextRoundNumber, group.length, isTopScoreGroup);
-      const bracket = String(group[0]?.matchPoints ?? 0);
-      const result = backtrackingPair(group, { protectedWindow, startTable, bracket });
-      if (result) return result;
-      return greedyPair(group, { protectedWindow, startTable, bracket });
-    }
-
-    function matchWinPct(player) {
-      const total = player.matchWins + player.matchLosses + player.matchDraws;
-      if (total === 0) return 0;
-      return (player.matchWins + player.matchDraws / 3) / total;
-    }
-
-    function gameWinPct(player) {
-      const total = player.gameWins + player.gameLosses + player.gameDraws;
-      if (total === 0) return 0;
-      return (player.gameWins + player.gameDraws / 3) / total;
-    }
-
-    function opponentMatchWinPct(player, allPlayers) {
-      if (!player.opponents.length) return 0;
-      const lookup = new Map(allPlayers.map(p => [String(p.id), p]));
-      let total = 0;
-      let count = 0;
-      for (const oppId of player.opponents) {
-        const opp = lookup.get(String(oppId));
-        if (!opp) continue;
-        total += Math.max(matchWinPct(opp), 0.33);
-        count++;
-      }
-      return count ? total / count : 0;
-    }
-
-    function opponentGameWinPct(player, allPlayers) {
-      if (!player.opponents.length) return 0;
-      const lookup = new Map(allPlayers.map(p => [String(p.id), p]));
-      let total = 0;
-      let count = 0;
-      for (const oppId of player.opponents) {
-        const opp = lookup.get(String(oppId));
-        if (!opp) continue;
-        total += Math.max(gameWinPct(opp), 0.33);
-        count++;
-      }
-      return count ? total / count : 0;
-    }
-
-    function blankPlayer(name, index) {
-      return {
-        id: String(index + 1),
-        name,
-        active: true,
-        dropped: false,
-        hadBye: false,
-        matchPoints: 0,
-        gameWins: 0,
-        gameLosses: 0,
-        gameDraws: 0,
-        matchWins: 0,
-        matchLosses: 0,
-        matchDraws: 0,
-        opponents: [],
-        initialOrder: index
-      };
-    }
-
-    function parsePlayers(text) {
-      return text
-        .split(/\r?\n/)
-        .map(s => s.trim())
-        .filter(Boolean)
-        .map((name, index) => blankPlayer(name, index));
-    }
-
-    function getCurrentRound() {
-      return state.rounds[state.rounds.length - 1] || null;
-    }
-
-    function allPreviousRoundsFinalized() {
-      return state.rounds.every(r => r.finalized === true);
-    }
-
-    function getDerivedPlayers() {
-      const players = state.players.map((p, i) => normalizePlayer({ ...p, opponents: [] }, i));
-      const lookup = new Map(players.map(p => [String(p.id), p]));
-      for (const round of state.rounds) {
-        if (!round.finalized) continue;
-        for (const pairing of round.pairings) {
-          const playerA = lookup.get(String(pairing.playerA));
-          if (!playerA) continue;
-          if (pairing.isBye) {
-            playerA.hadBye = true;
-            playerA.matchPoints += 3;
-            playerA.matchWins += 1;
-            continue;
-          }
-          const playerB = lookup.get(String(pairing.playerB));
-          if (!playerB) continue;
-          applyMatchResult(playerA, playerB, pairing.resultCode);
-        }
-      }
-      return players;
-    }
-
-    function applyMatchResult(playerA, playerB, resultCode) {
-      const code = String(resultCode || "").trim().toUpperCase();
-      const map = {
-        "2-0-0": { a: { mw: 1, ml: 0, md: 0, mp: 3, gw: 2, gl: 0, gd: 0 }, b: { mw: 0, ml: 1, md: 0, mp: 0, gw: 0, gl: 2, gd: 0 } },
-        "2-1-0": { a: { mw: 1, ml: 0, md: 0, mp: 3, gw: 2, gl: 1, gd: 0 }, b: { mw: 0, ml: 1, md: 0, mp: 0, gw: 1, gl: 2, gd: 0 } },
-        "1-2-0": { a: { mw: 0, ml: 1, md: 0, mp: 0, gw: 1, gl: 2, gd: 0 }, b: { mw: 1, ml: 0, md: 0, mp: 3, gw: 2, gl: 1, gd: 0 } },
-        "0-2-0": { a: { mw: 0, ml: 1, md: 0, mp: 0, gw: 0, gl: 2, gd: 0 }, b: { mw: 1, ml: 0, md: 0, mp: 3, gw: 2, gl: 0, gd: 0 } },
-        "1-0-1": { a: { mw: 1, ml: 0, md: 0, mp: 3, gw: 1, gl: 0, gd: 1 }, b: { mw: 0, ml: 1, md: 0, mp: 0, gw: 0, gl: 1, gd: 1 } },
-        "0-1-1": { a: { mw: 0, ml: 1, md: 0, mp: 0, gw: 0, gl: 1, gd: 1 }, b: { mw: 1, ml: 0, md: 0, mp: 3, gw: 1, gl: 0, gd: 1 } },
-        "0-0-1": { a: { mw: 0, ml: 0, md: 1, mp: 1, gw: 0, gl: 0, gd: 1 }, b: { mw: 0, ml: 0, md: 1, mp: 1, gw: 0, gl: 0, gd: 1 } },
-        "ID": { a: { mw: 0, ml: 0, md: 1, mp: 1, gw: 0, gl: 0, gd: 0 }, b: { mw: 0, ml: 0, md: 1, mp: 1, gw: 0, gl: 0, gd: 0 } }
-      };
-      const entry = map[code];
-      if (!entry) throw new Error(`Unsupported result code: ${resultCode}`);
-      playerA.matchWins += entry.a.mw; playerA.matchLosses += entry.a.ml; playerA.matchDraws += entry.a.md;
-      playerA.matchPoints += entry.a.mp; playerA.gameWins += entry.a.gw; playerA.gameLosses += entry.a.gl; playerA.gameDraws += entry.a.gd;
-      playerB.matchWins += entry.b.mw; playerB.matchLosses += entry.b.ml; playerB.matchDraws += entry.b.md;
-      playerB.matchPoints += entry.b.mp; playerB.gameWins += entry.b.gw; playerB.gameLosses += entry.b.gl; playerB.gameDraws += entry.b.gd;
-      if (!playerA.opponents.includes(String(playerB.id))) playerA.opponents.push(String(playerB.id));
-      if (!playerB.opponents.includes(String(playerA.id))) playerB.opponents.push(String(playerA.id));
-    }
-
-    function buildStandings() {
-      const players = getDerivedPlayers();
-      sortPlayersForSwiss(players);
-      return players.map((player, idx) => ({
-        rank: idx + 1,
-        ...player,
-        omw: opponentMatchWinPct(player, players),
-        gw: gameWinPct(player),
-        ogw: opponentGameWinPct(player, players)
-      }));
-    }
-
-
-    function shuffleInPlace(array) {
-      for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-      }
-      return array;
-    }
-
-    function recommendedTopCutSize() {
-      const active = getActiveCount();
-      if (active >= 8) return 8;
-      if (active >= 4) return 4;
-      return 0;
-    }
-
-    function getCurrentOpenSwissRound() {
-      const round = getCurrentRound();
-      if (!round || round.finalized) return null;
-      return round;
-    }
-
-    function findPairingForPlayer(round, playerId) {
-      return round?.pairings.find(p => String(p.playerA) === String(playerId) || String(p.playerB) === String(playerId)) || null;
-    }
-
-    function getPreviousOpponentsMap() {
-      const players = getDerivedPlayers();
-      return new Map(players.map(p => [String(p.id), new Set((p.opponents || []).map(String))]));
-    }
-
-    function matchWouldBeRepeat(playerIdA, playerIdB) {
-      const map = getPreviousOpponentsMap();
-      return map.get(String(playerIdA))?.has(String(playerIdB)) || false;
-    }
-
-    function startTopCut() {
-      if (!state.players.length) throw new Error("Start an event first.");
-      if (!allPreviousRoundsFinalized()) throw new Error("Finalize all Swiss rounds before starting top cut.");
-      if (state.topCut && state.topCut.rounds?.length) throw new Error("Top cut already exists. Clear it first if you want to rebuild it.");
-      const activeStandings = buildStandings().filter(p => !p.dropped && p.active !== false);
-      const size = recommendedTopCutSize();
-      if (!size) throw new Error("You need at least 4 active players for a top cut.");
-      if (state.rounds.length < state.maxRounds) {
-        if (!confirm(`Swiss is only ${state.rounds.length}/${state.maxRounds} rounds complete. Start a Top ${size} anyway?`)) return;
-      }
-      const seeds = activeStandings.slice(0, size).map((p, idx) => ({ seed: idx + 1, playerId: p.id, name: p.name }));
-      const opening = [];
-      if (size === 4) {
-        opening.push({ table: 1, playerA: seeds[0].playerId, playerB: seeds[3].playerId, label: "1 vs 4", winnerId: "" });
-        opening.push({ table: 2, playerA: seeds[1].playerId, playerB: seeds[2].playerId, label: "2 vs 3", winnerId: "" });
-      } else {
-        opening.push({ table: 1, playerA: seeds[0].playerId, playerB: seeds[7].playerId, label: "1 vs 8", winnerId: "" });
-        opening.push({ table: 2, playerA: seeds[3].playerId, playerB: seeds[4].playerId, label: "4 vs 5", winnerId: "" });
-        opening.push({ table: 3, playerA: seeds[1].playerId, playerB: seeds[6].playerId, label: "2 vs 7", winnerId: "" });
-        opening.push({ table: 4, playerA: seeds[2].playerId, playerB: seeds[5].playerId, label: "3 vs 6", winnerId: "" });
-      }
-      state.topCut = {
-        size,
-        seeds,
-        rounds: [{ name: size === 4 ? "Semifinals" : "Quarterfinals", matches: opening }],
-        championId: "",
-        completed: false
-      };
-      render();
-    }
-
-    function advanceTopCut() {
-      if (!state.topCut || !state.topCut.rounds?.length) throw new Error("Start a top cut first.");
-      const current = state.topCut.rounds[state.topCut.rounds.length - 1];
-      if (current.matches.some(m => !m.winnerId)) throw new Error("Choose a winner for every open top cut match first.");
-      const winners = current.matches.map(m => m.winnerId);
-      if (winners.length === 1) {
-        state.topCut.championId = winners[0];
-        state.topCut.completed = true;
-        render();
-        return;
-      }
-      const nextName = winners.length === 2 ? "Finals" : "Semifinals";
-      const nextMatches = [];
-      for (let i = 0; i < winners.length; i += 2) {
-        nextMatches.push({
-          table: nextMatches.length + 1,
-          playerA: winners[i],
-          playerB: winners[i + 1],
-          label: `${nextName} Match ${nextMatches.length + 1}`,
-          winnerId: ""
-        });
-      }
-      state.topCut.rounds.push({ name: nextName, matches: nextMatches });
-      render();
-    }
-
-    function clearTopCut() {
-      if (!state.topCut) return;
-      if (!confirm("Clear the current top cut bracket?")) return;
-      state.topCut = null;
-      render();
-    }
-
-    function rewindLastAction() {
-      if (state.topCut && state.topCut.rounds?.length) {
-        if (state.topCut.completed) {
-          if (!confirm("Remove the recorded champion and reopen the finals?")) return;
-          state.topCut.completed = false;
-          state.topCut.championId = "";
-          render();
-          return;
-        }
-        if (state.topCut.rounds.length > 1) {
-          if (!confirm("Rewind the last top cut round?")) return;
-          state.topCut.rounds.pop();
-          render();
-          return;
-        }
-        if (!confirm("Clear the opening top cut bracket?")) return;
-        state.topCut = null;
-        render();
-        return;
-      }
-      if (!state.rounds.length) throw new Error("No round exists to rewind.");
-      const lastRound = state.rounds[state.rounds.length - 1];
-      if (!confirm(`Remove Round ${lastRound.round}? This cannot be undone.`)) return;
-      state.rounds.pop();
-      resetTimer();
-      render();
-    }
-
-    function buildOverridePlayerOptions() {
-      const round = getCurrentOpenSwissRound();
-      if (!round) return '<option value="">No open round</option>';
-      const lookup = new Map(state.players.map(p => [String(p.id), p.name]));
-      const rows = [];
-      for (const pairing of round.pairings) {
-        rows.push(`<option value="${pairing.playerA}">T${pairing.table} • ${lookup.get(String(pairing.playerA)) || pairing.playerA}</option>`);
-        if (!pairing.isBye && pairing.playerB) rows.push(`<option value="${pairing.playerB}">T${pairing.table} • ${lookup.get(String(pairing.playerB)) || pairing.playerB}</option>`);
-      }
-      return rows.join("");
-    }
-
-    function swapSelectedPlayers() {
-      const round = getCurrentOpenSwissRound();
-      if (!round) throw new Error("You need an open Swiss round to use manual override.");
-      const a = el.overridePlayerA.value;
-      const b = el.overridePlayerB.value;
-      if (!a || !b) throw new Error("Choose two seated players first.");
-      if (String(a) === String(b)) throw new Error("Choose two different players.");
-      const pairingA = findPairingForPlayer(round, a);
-      const pairingB = findPairingForPlayer(round, b);
-      if (!pairingA || !pairingB) throw new Error("One of those players is not seated in the current round.");
-      const lookup = new Map(state.players.map(p => [String(p.id), p.name]));
-      const warningBits = [];
-      const otherA = String(pairingA.playerA) === String(a) ? pairingA.playerB : pairingA.playerA;
-      const otherB = String(pairingB.playerA) === String(b) ? pairingB.playerB : pairingB.playerA;
-      if (otherA && matchWouldBeRepeat(b, otherA)) warningBits.push(`${lookup.get(String(b))} would become a repeat pairing with ${lookup.get(String(otherA))}.`);
-      if (otherB && matchWouldBeRepeat(a, otherB)) warningBits.push(`${lookup.get(String(a))} would become a repeat pairing with ${lookup.get(String(otherB))}.`);
-      const summary = [
-        `Swap ${lookup.get(String(a)) || a} with ${lookup.get(String(b)) || b}?`,
-        `This changes Table ${pairingA.table} and Table ${pairingB.table}.`,
-        warningBits.length ? "\nWarnings:\n- " + warningBits.join("\n- ") : ""
-      ].join("\n");
-      if (!confirm(summary)) return;
-
-      const swapInPairing = (pairing, oldId, newId) => {
-        if (String(pairing.playerA) === String(oldId)) pairing.playerA = String(newId);
-        else if (String(pairing.playerB) === String(oldId)) pairing.playerB = String(newId);
-      };
-      swapInPairing(pairingA, a, b);
-      swapInPairing(pairingB, b, a);
-
-      const seen = new Set();
-      for (const pairing of round.pairings) {
-        if (pairing.playerA === pairing.playerB) throw new Error("Manual swap produced a self-pairing. Revert and try a different change.");
-        for (const pid of [pairing.playerA, pairing.playerB]) {
-          if (!pid) continue;
-          if (seen.has(String(pid))) throw new Error("Manual swap produced a duplicate seat. Revert and try again.");
-          seen.add(String(pid));
-        }
-      }
-      render();
-    }
-    function buildNextRound() {
-      if (!state.players.length) throw new Error("Start an event first.");
-      const currentRound = getCurrentRound();
-      if (currentRound && !currentRound.finalized) {
-        throw new Error("Finalize or unlock the current round before building the next round.");
-      }
-      if (state.rounds.length >= state.maxRounds) {
-        throw new Error("Max rounds reached. Tournament is complete.");
-      }
-      const derivedPlayers = getDerivedPlayers().filter(p => !p.dropped && p.active !== false);
-      if (derivedPlayers.length < 2) throw new Error("Not enough active players to create pairings.");
-      const pairingResult = generateSwissPairings(derivedPlayers, state.rounds.length + 1);
-      state.rounds.push({
-        round: state.rounds.length + 1,
-        pairings: pairingResult.pairings,
-        finalized: false,
-        createdAt: new Date().toISOString()
-      });
-      resetTimer();
-      render();
-    }
-
-    function finalizeCurrentRound() {
-      const round = getCurrentRound();
-      if (!round) throw new Error("No round to finalize.");
-      const missing = round.pairings.filter(p => !p.isBye && !p.resultCode);
-      if (missing.length) throw new Error(`Round ${round.round} is missing ${missing.length} result(s).`);
-      round.finalized = true;
-      stopTimer(false);
-      render();
-    }
-
-    function unlockCurrentRound() {
-      const round = getCurrentRound();
-      if (!round) throw new Error("No round to unlock.");
-      round.finalized = false;
-      render();
-    }
-
-    function dropSelectedPlayer() {
-      const id = el.dropPlayerSelect.value;
-      const player = state.players.find(p => String(p.id) === String(id));
-      if (!player) throw new Error("Select a player to drop.");
-      const currentRound = getCurrentRound();
-      if (currentRound && !currentRound.finalized) {
-        const isPaired = currentRound.pairings.some(p => p.playerA === player.id || p.playerB === player.id);
-        if (isPaired) throw new Error("Finalize or unlock/edit the current round before dropping a paired player.");
-      }
-      player.dropped = true;
-      player.active = false;
-      render();
-    }
-
-    function formatRecord(player) {
-      return `${player.matchWins}-${player.matchLosses}-${player.matchDraws}`;
-    }
-
-    function pct(n) {
-      return `${(n * 100).toFixed(1)}%`;
-    }
-
-    function getMissingResultsCount() {
-      const round = getCurrentRound();
-      if (!round) return 0;
-      return round.pairings.filter(p => !p.isBye && !p.resultCode).length;
-    }
-
-    function getActiveCount() {
-      return state.players.filter(p => !p.dropped && p.active !== false).length;
-    }
-
-    function renderPairings() {
-      const round = getCurrentRound();
-      const lookup = new Map(state.players.map(p => [String(p.id), p]));
-      el.pairingsBody.innerHTML = "";
-      if (!round) {
-        el.pairingsBody.innerHTML = `<tr><td colspan="6" class="tiny">No round built yet.</td></tr>`;
-        return;
-      }
-      for (const pairing of round.pairings) {
-        const tr = document.createElement("tr");
-        if (!pairing.isBye && !pairing.resultCode) tr.classList.add("pairing-missing");
-        if (round.finalized) tr.classList.add("pairing-finalized");
-        const resultOptions = RESULT_CODES.map(code => `<option value="${code}" ${pairing.resultCode === code ? "selected" : ""}>${code || "Select"}</option>`).join("");
-        tr.innerHTML = `
-          <td>${pairing.table}</td>
-          <td>${lookup.get(String(pairing.playerA))?.name ?? pairing.playerA}</td>
-          <td>${pairing.isBye ? "BYE" : (lookup.get(String(pairing.playerB))?.name ?? pairing.playerB)}</td>
-          <td><span class="tag mono">${pairing.bracket}</span></td>
-          <td>${pairing.protectedTopTable ? `<span class="tag">Top-table protected</span>` : ""}</td>
-          <td>${pairing.isBye ? `<span class="tag">Auto BYE</span>` : `<select class="results-select" data-table="${pairing.table}" ${round.finalized ? "disabled" : ""}>${resultOptions}</select>`}</td>
-        `;
-        el.pairingsBody.appendChild(tr);
-      }
-      el.pairingsBody.querySelectorAll("select.results-select").forEach(select => {
-        select.addEventListener("change", (event) => {
-          const table = Number(event.target.dataset.table);
-          const pairing = round.pairings.find(p => p.table === table);
-          if (pairing) pairing.resultCode = event.target.value;
-          renderDashboardBits();
-          renderHistory();
-          renderStream();
-        });
-      });
-    }
-
-    function renderStandings() {
-      const standings = buildStandings();
-      el.standingsBody.innerHTML = "";
-      if (!standings.length) {
-        el.standingsBody.innerHTML = `<tr><td colspan="8" class="tiny">No players loaded.</td></tr>`;
-        return;
-      }
-      for (const player of standings) {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${player.rank}</td>
-          <td>${player.name}</td>
-          <td class="mono">${formatRecord(player)}</td>
-          <td>${player.matchPoints}</td>
-          <td>${pct(player.omw)}</td>
-          <td>${pct(player.gw)}</td>
-          <td>${pct(player.ogw)}</td>
-          <td>${player.dropped ? `<span class="tag">Dropped</span>` : `<span class="tag">Active</span>`}</td>
-        `;
-        el.standingsBody.appendChild(tr);
-      }
-    }
-
-    function renderHistory() {
-      if (!state.rounds.length) {
-        el.historyPanel.innerHTML = `<div class="tiny">No rounds yet.</div>`;
-        return;
-      }
-      const lookup = new Map(state.players.map(p => [String(p.id), p]));
-      el.historyPanel.innerHTML = state.rounds.map(round => {
-        const completed = round.pairings.filter(p => p.isBye || p.resultCode).length;
-        return `
-          <div class="history-item">
-            <div class="spread">
-              <strong>Round ${round.round}</strong>
-              <span class="tag">${round.finalized ? "Finalized" : "Open"}</span>
-            </div>
-            <div class="tiny">${completed}/${round.pairings.length} tables recorded</div>
-            <div class="tiny">${round.pairings.map(p => `${p.table}. ${lookup.get(String(p.playerA))?.name ?? p.playerA} ${p.isBye ? "gets BYE" : `vs ${lookup.get(String(p.playerB))?.name ?? p.playerB} [${p.resultCode || "pending"}]`}`).join(" • ")}</div>
-          </div>
-        `;
-      }).join("");
-    }
-
-    function renderDashboardBits() {
-      const round = getCurrentRound();
-      const activeCount = getActiveCount();
-      const missing = getMissingResultsCount();
-      el.metricPlayers.textContent = state.players.length;
-      el.metricPlayersSub.textContent = `${activeCount} active`;
-      el.metricRound.textContent = `${state.rounds.length} / ${state.maxRounds}`;
-      el.metricRoundSub.textContent = round ? (round.finalized ? `Round ${round.round} finalized` : `Round ${round.round} open`) : "Waiting to start";
-      el.metricMissing.textContent = missing;
-      el.metricTimer.textContent = formatTime(state.timer.remainingSeconds);
-      el.metricTimerSub.textContent = state.timer.running ? "Timer running" : "Timer ready";
-      el.eventSummary.textContent = state.players.length ? `${state.eventName} • ${state.eventDate || "No date"}` : "No event in progress";
-      el.roundState.textContent = round ? (round.finalized ? `Round ${round.round} complete` : `Round ${round.round} pending`) : "No round built";
-      el.timerDisplay.textContent = formatTime(state.timer.remainingSeconds);
-      if (!state.players.length) {
-        el.judgeStatus.textContent = "No event loaded";
-        el.judgeStatus.className = "status-pill warnish";
-      } else if (!round) {
-        el.judgeStatus.textContent = "Ready to build Round 1";
-        el.judgeStatus.className = "status-pill goodish";
-      } else if (round.finalized) {
-        el.judgeStatus.textContent = `Round ${round.round} finalized`;
-        el.judgeStatus.className = "status-pill goodish";
-      } else if (missing > 0) {
-        el.judgeStatus.textContent = `Round ${round.round}: ${missing} result(s) missing`;
-        el.judgeStatus.className = "status-pill badish";
-      } else {
-        el.judgeStatus.textContent = `Round ${round.round} ready to finalize`;
-        el.judgeStatus.className = "status-pill warnish";
-      }
-      el.buildRoundBtn.disabled = !state.players.length || (round && !round.finalized) || state.rounds.length >= state.maxRounds;
-      el.finalizeRoundBtn.disabled = !round || round.finalized;
-      el.unlockRoundBtn.disabled = !round;
-      el.dropPlayerBtn.disabled = !state.players.length;
-      el.dropPlayerSelect.innerHTML = state.players.map(p => `<option value="${p.id}">${p.name}${p.dropped ? " (Dropped)" : ""}</option>`).join("");
-    }
-
-
-    function renderStream() {
-      const round = getCurrentRound();
-      const lookup = new Map(state.players.map(p => [String(p.id), p.name]));
-      const standings = buildStandings().slice(0, 8);
-      el.streamEventTitle.textContent = state.eventName || "1v1 Swiss Event";
-      el.streamEventSub.textContent = state.topCut && state.topCut.rounds?.length
-        ? `Top ${state.topCut.size} • ${state.topCut.completed ? "Champion crowned" : state.topCut.rounds[state.topCut.rounds.length - 1].name}`
-        : (round ? `Round ${round.round} • ${round.finalized ? "Finalized Pairings" : "Live Pairings"}` : "Waiting for pairings");
-
-      if (!round) {
-        el.streamGrid.innerHTML = `<div class="stream-card"><div class="stream-player">No pairings yet</div></div>`;
-      } else {
-        const visible = round.pairings.filter(p => !p.isBye);
-        const rotationIndex = ensureStreamRotation().index % Math.max(visible.length || 1, 1);
-        const spotlight = visible.length ? visible.slice(rotationIndex, rotationIndex + 4).concat(visible.slice(0, Math.max(0, rotationIndex + 4 - visible.length))) : [];
-        const cards = spotlight.length ? spotlight : round.pairings;
-        el.streamGrid.innerHTML = cards.map((pairing, idx) => `
-          <div class="stream-card">
-            <div class="stream-spotlight-label">${idx === 0 ? "Spotlight Table" : "Featured Table"}</div>
-            <div class="stream-table">Table ${pairing.table}</div>
-            <div class="stream-players">
-              <div class="stream-player">${lookup.get(String(pairing.playerA)) || pairing.playerA}</div>
-              <div class="stream-vs">${pairing.isBye ? "BYE" : "vs"}</div>
-              <div class="stream-player">${pairing.isBye ? "BYE" : (lookup.get(String(pairing.playerB)) || pairing.playerB)}</div>
-            </div>
-            <div class="stream-badge">${pairing.protectedTopTable ? "Protected top table" : `Bracket ${pairing.bracket}`}</div>
-          </div>
-        `).join("");
-      }
-
-      el.streamStandings.innerHTML = standings.map(player => `
-        <div class="stream-standing-row">
-          <div>#${player.rank}</div>
+  <div class="layout">
+    <div class="stack">
+      <section class="panel">
+        <div class="panel-head"><strong>Event Setup</strong></div>
+        <div class="panel-body stack">
           <div>
-            <div><strong>${player.name}</strong></div>
-            <div class="stream-mini">${formatRecord(player)} • OMW ${pct(player.omw)}</div>
+            <div class="tiny">Event name</div>
+            <input id="eventName" value="1v1 Swiss Event" />
           </div>
-          <div>${player.matchPoints} pts</div>
+          <div class="grid-2">
+            <div>
+              <div class="tiny">Round minutes</div>
+              <input id="roundMinutes" type="number" min="1" value="50" />
+            </div>
+            <div>
+              <div class="tiny">Event date</div>
+              <input id="eventDate" type="date" />
+            </div>
+          </div>
+          <div>
+            <div class="tiny">Players, one per line</div>
+            <textarea id="playerInput" placeholder="Alice&#10;Bob&#10;Charlie&#10;Dana"></textarea>
+          </div>
+          <div class="grid-2">
+            <button id="startBtn" class="good">Start / Reset Event</button>
+            <button id="sampleBtn" class="ghost">Load Sample Players</button>
+          </div>
+          <div class="tiny">Starting a new event clears rounds and rebuilds from the player list above.</div>
         </div>
-      `).join("") || `<div class="stream-mini">No standings yet.</div>`;
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><strong>Judge Mode</strong></div>
+        <div class="panel-body stack">
+          <div class="spread">
+            <span id="judgeStatus" class="status-pill">No event loaded</span>
+            <span id="timerDisplay" class="status-pill">50:00</span>
+          </div>
+
+          <div class="grid-2">
+            <button id="buildRoundBtn" class="primary">Build Next Round</button>
+            <button id="finalizeRoundBtn" class="good">Finalize Current Round</button>
+          </div>
+
+          <div class="grid-2">
+            <button id="unlockRoundBtn" class="warn">Unlock Round</button>
+            <button id="rewindBtn" class="danger">Rewind Last Round</button>
+          </div>
+
+          <div class="grid-2">
+            <button id="toggleDropBtn" class="danger">Drop / Reinstate Selected Player</button>
+            <button id="generateTopCutBtn" class="ghost">Generate Top Cut</button>
+          </div>
+
+          <div class="grid-3">
+            <button id="startTimerBtn" class="ghost">Start Timer</button>
+            <button id="pauseTimerBtn" class="ghost">Pause</button>
+            <button id="resetTimerBtn" class="ghost">Reset</button>
+          </div>
+
+          <div>
+            <div class="tiny">Selected player</div>
+            <select id="playerSelect"></select>
+          </div>
+
+          <div class="grid-2">
+            <div>
+              <div class="tiny">Swap Table A</div>
+              <select id="swapTableA"></select>
+            </div>
+            <div>
+              <div class="tiny">Swap Table B</div>
+              <select id="swapTableB"></select>
+            </div>
+          </div>
+
+          <button id="swapBtn" class="warn">Manual Swap Players Between Tables</button>
+
+          <div class="tiny">
+            Guardrails: Swiss rematches are forbidden. Pair-downs are allowed. Manual swap asks for confirmation and checks legality before applying.
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><strong>Round History</strong></div>
+        <div id="historyPanel" class="panel-body stack">
+          <div class="tiny">No rounds yet.</div>
+        </div>
+      </section>
+    </div>
+
+    <div class="stack">
+      <section class="panel">
+        <div class="panel-head"><strong>Dashboard</strong></div>
+        <div class="panel-body stack">
+          <div class="metrics">
+            <div class="metric">
+              <div class="metric-label">Players</div>
+              <div id="metricPlayers" class="metric-value">0</div>
+              <div id="metricPlayersSub" class="metric-sub">0 active</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Round</div>
+              <div id="metricRound" class="metric-value">0 / 0</div>
+              <div id="metricRoundSub" class="metric-sub">Waiting to start</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Missing results</div>
+              <div id="metricMissing" class="metric-value">0</div>
+              <div class="metric-sub">Open tables needing scores</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Timer</div>
+              <div id="metricTimer" class="metric-value">50:00</div>
+              <div id="metricTimerSub" class="metric-sub">Ready</div>
+            </div>
+          </div>
+
+          <div class="flex">
+            <span id="eventSummary" class="status-pill">No event in progress</span>
+            <span id="roundState" class="status-pill">No round built</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head spread">
+          <strong>Current Pairings</strong>
+          <span class="tiny">Result codes: 2-0-0, 2-1-0, 1-2-0, 0-2-0, 1-0-1, 0-1-1, 0-0-1, ID</span>
+        </div>
+        <div class="panel-body" style="overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Table</th>
+                <th>Player A</th>
+                <th>Player B</th>
+                <th>Bracket</th>
+                <th>Flags</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody id="pairingsBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><strong>Standings</strong></div>
+        <div class="panel-body" style="overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Record</th>
+                <th>MP</th>
+                <th>OMW%</th>
+                <th>GW%</th>
+                <th>OGW%</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="standingsBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><strong>Top Cut</strong></div>
+        <div id="topCutPanel" class="panel-body stack">
+          <div class="tiny">No top cut generated yet.</div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div id="streamScreen" class="stream-screen">
+  <div class="stream-header">
+    <div>
+      <div id="streamEventTitle" class="stream-title">MTG 1v1 Judge App</div>
+      <div id="streamEventSub" class="stream-sub">Round display</div>
+    </div>
+    <div class="flex">
+      <button id="streamRotateBtn" class="ghost">Rotate Tables</button>
+      <button id="streamStandingsBtn" class="ghost">Show Standings</button>
+      <button id="streamPairingsBtn" class="ghost">Show Pairings</button>
+      <button id="streamExitBtn" class="danger">Exit</button>
+    </div>
+  </div>
+
+  <div id="streamGrid" class="stream-grid"></div>
+</div>
+
+<script>
+const RESULT_CODES = ["", "2-0-0", "2-1-0", "1-2-0", "0-2-0", "1-0-1", "0-1-1", "0-0-1", "ID"];
+const STORAGE_KEY = "mtg_1v1_judge_stable_v1";
+
+const state = {
+  eventName: "1v1 Swiss Event",
+  eventDate: "",
+  roundMinutes: 50,
+  players: [],
+  rounds: [],
+  maxRounds: 0,
+  topCut: null,
+  stream: {
+    mode: "pairings",
+    rotationIndex: 0,
+    intervalId: null
+  },
+  timer: {
+    totalSeconds: 50 * 60,
+    remainingSeconds: 50 * 60,
+    running: false,
+    intervalId: null
+  }
+};
+
+const el = {};
+[
+  "eventName","roundMinutes","eventDate","playerInput","startBtn","sampleBtn","saveBtn","loadBtn","exportBtn","importBtn",
+  "streamBtn","filePicker","judgeStatus","timerDisplay","buildRoundBtn","finalizeRoundBtn","unlockRoundBtn","rewindBtn",
+  "toggleDropBtn","generateTopCutBtn","startTimerBtn","pauseTimerBtn","resetTimerBtn","playerSelect","swapTableA","swapTableB","swapBtn",
+  "historyPanel","metricPlayers","metricPlayersSub","metricRound","metricRoundSub","metricMissing","metricTimer","metricTimerSub",
+  "eventSummary","roundState","pairingsBody","standingsBody","topCutPanel","streamScreen","streamEventTitle","streamEventSub",
+  "streamGrid","streamRotateBtn","streamStandingsBtn","streamPairingsBtn","streamExitBtn"
+].forEach(id => el[id] = document.getElementById(id));
+
+function runSafe(fn){
+  try { fn(); }
+  catch(err){ alert(err.message || String(err)); }
+}
+
+function formatTime(totalSeconds){
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+  return `${String(mins).padStart(2,"0")}:${String(secs).padStart(2,"0")}`;
+}
+
+function resetTimer(){
+  stopTimer(false);
+  state.timer.totalSeconds = Number(state.roundMinutes || 50) * 60;
+  state.timer.remainingSeconds = state.timer.totalSeconds;
+}
+
+function startTimer(){
+  if(state.timer.running) return;
+  state.timer.running = true;
+  state.timer.intervalId = setInterval(() => {
+    if(state.timer.remainingSeconds > 0){
+      state.timer.remainingSeconds--;
+      renderDashboardBits();
+    } else {
+      stopTimer(false);
+      alert("Round time reached.");
+    }
+  }, 1000);
+  renderDashboardBits();
+}
+
+function stopTimer(renderAfter = true){
+  state.timer.running = false;
+  if(state.timer.intervalId){
+    clearInterval(state.timer.intervalId);
+    state.timer.intervalId = null;
+  }
+  if(renderAfter) renderDashboardBits();
+}
+
+function shuffle(array){
+  const arr = [...array];
+  for(let i = arr.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function getMaxRounds(playerCount){
+  if(playerCount <= 1) return 0;
+  if(playerCount <= 8) return 3;
+  if(playerCount <= 16) return 4;
+  if(playerCount <= 32) return 5;
+  if(playerCount <= 64) return 6;
+  if(playerCount <= 128) return 7;
+  return Math.ceil(Math.log2(playerCount));
+}
+
+function parsePlayers(text){
+  return text.split("\n")
+    .map(x => x.trim())
+    .filter(Boolean)
+    .map((name, i) => ({
+      id: String(i + 1),
+      name,
+      dropped: false,
+      active: true,
+      initialOrder: i
+    }));
+}
+
+function deepClone(obj){
+  return JSON.parse(JSON.stringify(obj));
+}
+
+function getCurrentRound(){
+  return state.rounds.length ? state.rounds[state.rounds.length - 1] : null;
+}
+
+function getPlayerById(id){
+  return state.players.find(p => String(p.id) === String(id));
+}
+
+function hasPlayed(playerAId, playerBId, rounds){
+  for(const round of rounds){
+    for(const pairing of round.pairings){
+      if(pairing.isBye) continue;
+      const a = String(pairing.playerA);
+      const b = String(pairing.playerB);
+      if((a === String(playerAId) && b === String(playerBId)) || (a === String(playerBId) && b === String(playerAId))){
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function buildDerivedPlayers(){
+  const players = state.players.map((p, i) => ({
+    id: String(p.id),
+    name: p.name,
+    dropped: !!p.dropped,
+    active: p.active !== false,
+    initialOrder: Number.isFinite(p.initialOrder) ? p.initialOrder : i,
+    hadBye: false,
+    matchWins: 0,
+    matchLosses: 0,
+    matchDraws: 0,
+    matchPoints: 0,
+    gameWins: 0,
+    gameLosses: 0,
+    gameDraws: 0,
+    opponents: []
+  }));
+
+  const map = new Map(players.map(p => [String(p.id), p]));
+
+  for(const round of state.rounds){
+    for(const pairing of round.pairings){
+      if(pairing.isBye){
+        const p = map.get(String(pairing.playerA));
+        if(!p) continue;
+        p.hadBye = true;
+        p.matchWins += 1;
+        p.matchPoints += 3;
+        continue;
+      }
+
+      const a = map.get(String(pairing.playerA));
+      const b = map.get(String(pairing.playerB));
+      if(!a || !b) continue;
+
+      if(!a.opponents.includes(b.id)) a.opponents.push(b.id);
+      if(!b.opponents.includes(a.id)) b.opponents.push(a.id);
+
+      const code = pairing.resultCode || "";
+      if(!code) continue;
+
+      applyResultCode(a, b, code);
+    }
+  }
+
+  return players;
+}
+
+function applyResultCode(a, b, code){
+  const map = {
+    "2-0-0": { a:{mw:1,ml:0,md:0,mp:3,gw:2,gl:0,gd:0}, b:{mw:0,ml:1,md:0,mp:0,gw:0,gl:2,gd:0} },
+    "2-1-0": { a:{mw:1,ml:0,md:0,mp:3,gw:2,gl:1,gd:0}, b:{mw:0,ml:1,md:0,mp:0,gw:1,gl:2,gd:0} },
+    "1-2-0": { a:{mw:0,ml:1,md:0,mp:0,gw:1,gl:2,gd:0}, b:{mw:1,ml:0,md:0,mp:3,gw:2,gl:1,gd:0} },
+    "0-2-0": { a:{mw:0,ml:1,md:0,mp:0,gw:0,gl:2,gd:0}, b:{mw:1,ml:0,md:0,mp:3,gw:2,gl:0,gd:0} },
+    "1-0-1": { a:{mw:1,ml:0,md:0,mp:3,gw:1,gl:0,gd:1}, b:{mw:0,ml:1,md:0,mp:0,gw:0,gl:1,gd:1} },
+    "0-1-1": { a:{mw:0,ml:1,md:0,mp:0,gw:0,gl:1,gd:1}, b:{mw:1,ml:0,md:0,mp:3,gw:1,gl:0,gd:1} },
+    "0-0-1": { a:{mw:0,ml:0,md:1,mp:1,gw:0,gl:0,gd:1}, b:{mw:0,ml:0,md:1,mp:1,gw:0,gl:0,gd:1} },
+    "ID":    { a:{mw:0,ml:0,md:1,mp:1,gw:0,gl:0,gd:0}, b:{mw:0,ml:0,md:1,mp:1,gw:0,gl:0,gd:0} }
+  };
+  const entry = map[code];
+  if(!entry) return;
+  for(const [player, data] of [[a, entry.a], [b, entry.b]]){
+    player.matchWins += data.mw;
+    player.matchLosses += data.ml;
+    player.matchDraws += data.md;
+    player.matchPoints += data.mp;
+    player.gameWins += data.gw;
+    player.gameLosses += data.gl;
+    player.gameDraws += data.gd;
+  }
+}
+
+function matchWinPct(player){
+  const matches = player.matchWins + player.matchLosses + player.matchDraws;
+  if(matches === 0) return 0;
+  return Math.max((player.matchPoints / (matches * 3)), 0.33);
+}
+
+function gameWinPct(player){
+  const games = player.gameWins + player.gameLosses + player.gameDraws;
+  if(games === 0) return 0;
+  return Math.max(((player.gameWins * 3 + player.gameDraws) / (games * 3)), 0.33);
+}
+
+function opponentMatchWinPct(player, allPlayers){
+  if(!player.opponents.length) return 0;
+  const lookup = new Map(allPlayers.map(p => [p.id, p]));
+  let total = 0;
+  let count = 0;
+  for(const oppId of player.opponents){
+    const opp = lookup.get(String(oppId));
+    if(!opp) continue;
+    total += matchWinPct(opp);
+    count++;
+  }
+  return count ? total / count : 0;
+}
+
+function opponentGameWinPct(player, allPlayers){
+  if(!player.opponents.length) return 0;
+  const lookup = new Map(allPlayers.map(p => [p.id, p]));
+  let total = 0;
+  let count = 0;
+  for(const oppId of player.opponents){
+    const opp = lookup.get(String(oppId));
+    if(!opp) continue;
+    total += gameWinPct(opp);
+    count++;
+  }
+  return count ? total / count : 0;
+}
+
+function sortForStandings(players){
+  players.sort((a,b) => {
+    if(b.matchPoints !== a.matchPoints) return b.matchPoints - a.matchPoints;
+    const aOMW = opponentMatchWinPct(a, players);
+    const bOMW = opponentMatchWinPct(b, players);
+    if(bOMW !== aOMW) return bOMW - aOMW;
+    const aGW = gameWinPct(a);
+    const bGW = gameWinPct(b);
+    if(bGW !== aGW) return bGW - aGW;
+    const aOGW = opponentGameWinPct(a, players);
+    const bOGW = opponentGameWinPct(b, players);
+    if(bOGW !== aOGW) return bOGW - aOGW;
+    return a.initialOrder - b.initialOrder;
+  });
+}
+
+function buildStandings(){
+  const players = buildDerivedPlayers();
+  sortForStandings(players);
+  return players.map((p, idx) => ({
+    ...p,
+    rank: idx + 1,
+    omw: opponentMatchWinPct(p, players),
+    gw: gameWinPct(p),
+    ogw: opponentGameWinPct(p, players)
+  }));
+}
+
+function chooseByePlayer(players){
+  if(players.length % 2 === 0) return null;
+  const candidates = [...players].sort((a,b) => {
+    if(a.hadBye !== b.hadBye) return a.hadBye ? 1 : -1;
+    if(a.matchPoints !== b.matchPoints) return a.matchPoints - b.matchPoints;
+    return b.initialOrder - a.initialOrder;
+  });
+  return candidates[0] || null;
+}
+
+function buildNextRound(){
+  if(!state.players.length) throw new Error("Start an event first.");
+  const current = getCurrentRound();
+  if(current && !current.finalized) throw new Error("Finalize or unlock the current round before building the next round.");
+  if(state.rounds.length >= state.maxRounds) throw new Error("Max rounds reached. Tournament is complete.");
+
+  if(state.topCut?.generated) throw new Error("Top cut already generated. Swiss is complete.");
+
+  let standings = buildStandings().filter(p => !p.dropped && p.active !== false);
+  if(standings.length < 2) throw new Error("Not enough active players to pair.");
+
+  let ordered;
+  if(state.rounds.length === 0){
+    ordered = shuffle(standings);
+  } else {
+    ordered = [...standings];
+  }
+
+  const byePlayer = chooseByePlayer(ordered);
+  let pool = ordered.filter(p => !byePlayer || p.id !== byePlayer.id);
+
+  const pairings = [];
+  let table = 1;
+
+  while(pool.length){
+    const first = pool.shift();
+    let opponentIndex = -1;
+
+    for(let i = 0; i < pool.length; i++){
+      const candidate = pool[i];
+      if(hasPlayed(first.id, candidate.id, state.rounds)) continue;
+      opponentIndex = i;
+      break;
     }
 
+    if(opponentIndex === -1){
+      throw new Error(`No legal Swiss pairing found for ${first.name} without creating a rematch.`);
+    }
 
-    function render() {
+    const second = pool.splice(opponentIndex, 1)[0];
+    pairings.push({
+      table,
+      playerA: first.id,
+      playerB: second.id,
+      isBye: false,
+      bracket: `${first.matchPoints}`,
+      protectedTopTable: state.rounds.length > 0 && table === 1 && first.matchPoints === second.matchPoints,
+      resultCode: ""
+    });
+    table++;
+  }
+
+  if(byePlayer){
+    pairings.push({
+      table,
+      playerA: byePlayer.id,
+      playerB: null,
+      isBye: true,
+      bracket: `${byePlayer.matchPoints}`,
+      protectedTopTable: false,
+      resultCode: "BYE"
+    });
+  }
+
+  state.rounds.push({
+    round: state.rounds.length + 1,
+    pairings,
+    finalized: false,
+    createdAt: new Date().toISOString()
+  });
+
+  resetTimer();
+  render();
+}
+
+function finalizeCurrentRound(){
+  const round = getCurrentRound();
+  if(!round) throw new Error("No round to finalize.");
+  const missing = round.pairings.filter(p => !p.isBye && !p.resultCode);
+  if(missing.length) throw new Error(`Round ${round.round} is missing ${missing.length} result(s).`);
+  round.finalized = true;
+  stopTimer(false);
+  render();
+}
+
+function unlockCurrentRound(){
+  const round = getCurrentRound();
+  if(!round) throw new Error("No round to unlock.");
+  round.finalized = false;
+  render();
+}
+
+function rewindLastRound(){
+  if(!state.rounds.length) throw new Error("No round to rewind.");
+  if(!confirm("Rewind the last round? This removes that round and all of its results.")) return;
+  state.rounds.pop();
+  render();
+}
+
+function toggleSelectedPlayerDrop(){
+  const id = el.playerSelect.value;
+  const player = getPlayerById(id);
+  if(!player) throw new Error("Select a player first.");
+
+  const round = getCurrentRound();
+  if(round && !round.finalized){
+    const isPaired = round.pairings.some(p => String(p.playerA) === String(id) || String(p.playerB) === String(id));
+    if(isPaired) throw new Error("Cannot change dropped status for a player seated in the current open round.");
+  }
+
+  player.dropped = !player.dropped;
+  player.active = !player.dropped;
+  render();
+}
+
+function manualSwapTables(){
+  const round = getCurrentRound();
+  if(!round) throw new Error("No round to edit.");
+  if(round.finalized) throw new Error("Unlock the round before editing pairings.");
+
+  const aTable = Number(el.swapTableA.value);
+  const bTable = Number(el.swapTableB.value);
+  if(!aTable || !bTable) throw new Error("Select two tables.");
+  if(aTable === bTable) throw new Error("Choose two different tables.");
+
+  const pairA = round.pairings.find(p => p.table === aTable && !p.isBye);
+  const pairB = round.pairings.find(p => p.table === bTable && !p.isBye);
+  if(!pairA || !pairB) throw new Error("Both selected tables must be real non-BYE tables.");
+
+  const newA1 = pairA.playerA;
+  const newA2 = pairB.playerB;
+  const newB1 = pairB.playerA;
+  const newB2 = pairA.playerB;
+
+  if(newA1 === newA2 || newB1 === newB2) throw new Error("Illegal swap would pair a player against themself.");
+
+  if(hasPlayed(newA1, newA2, state.rounds.slice(0, -1))) throw new Error("Illegal swap: Table A would become a rematch.");
+  if(hasPlayed(newB1, newB2, state.rounds.slice(0, -1))) throw new Error("Illegal swap: Table B would become a rematch.");
+
+  const lookup = new Map(state.players.map(p => [String(p.id), p.name]));
+  const msg = `Swap opponents between Table ${aTable} and Table ${bTable}?\n\n` +
+              `Table ${aTable}: ${lookup.get(String(newA1))} vs ${lookup.get(String(newA2))}\n` +
+              `Table ${bTable}: ${lookup.get(String(newB1))} vs ${lookup.get(String(newB2))}`;
+  if(!confirm(msg)) return;
+
+  pairA.playerB = newA2;
+  pairB.playerB = newB2;
+  pairA.resultCode = "";
+  pairB.resultCode = "";
+  render();
+}
+
+function generateTopCut(){
+  if(!state.players.length) throw new Error("Start an event first.");
+  const current = getCurrentRound();
+  if(current && !current.finalized) throw new Error("Finalize the current round first.");
+  if(state.rounds.length < state.maxRounds) throw new Error("Finish Swiss before generating top cut.");
+
+  const standings = buildStandings().filter(p => !p.dropped);
+  const size = standings.length >= 8 ? 8 : standings.length >= 4 ? 4 : 0;
+  if(size === 0) throw new Error("Need at least 4 players for top cut.");
+
+  const seeds = standings.slice(0, size).map((p, idx) => ({
+    seed: idx + 1,
+    id: p.id,
+    name: p.name
+  }));
+
+  const quarterfinals = [];
+  const semifinals = [];
+  const finals = [];
+
+  if(size === 4){
+    semifinals.push(
+      { match: 1, a: seeds[0], b: seeds[3], winnerId: "" },
+      { match: 2, a: seeds[1], b: seeds[2], winnerId: "" }
+    );
+  } else {
+    quarterfinals.push(
+      { match: 1, a: seeds[0], b: seeds[7], winnerId: "" },
+      { match: 2, a: seeds[3], b: seeds[4], winnerId: "" },
+      { match: 3, a: seeds[1], b: seeds[6], winnerId: "" },
+      { match: 4, a: seeds[2], b: seeds[5], winnerId: "" }
+    );
+  }
+
+  state.topCut = {
+    generated: true,
+    size,
+    seeds,
+    quarterfinals,
+    semifinals,
+    finals,
+    championId: ""
+  };
+  render();
+}
+
+function resolveTopCutAdvancement(){
+  if(!state.topCut?.generated) return;
+
+  if(state.topCut.size === 8){
+    const q = state.topCut.quarterfinals;
+    state.topCut.semifinals = [
+      {
+        match: 1,
+        a: q[0].winnerId ? seedStub(q[0].winnerId) : null,
+        b: q[1].winnerId ? seedStub(q[1].winnerId) : null,
+        winnerId: state.topCut.semifinals?.[0]?.winnerId || ""
+      },
+      {
+        match: 2,
+        a: q[2].winnerId ? seedStub(q[2].winnerId) : null,
+        b: q[3].winnerId ? seedStub(q[3].winnerId) : null,
+        winnerId: state.topCut.semifinals?.[1]?.winnerId || ""
+      }
+    ];
+  }
+
+  const s = state.topCut.semifinals || [];
+  state.topCut.finals = [
+    {
+      match: 1,
+      a: s[0]?.winnerId ? seedStub(s[0].winnerId) : null,
+      b: s[1]?.winnerId ? seedStub(s[1].winnerId) : null,
+      winnerId: state.topCut.finals?.[0]?.winnerId || ""
+    }
+  ];
+  state.topCut.championId = state.topCut.finals[0]?.winnerId || "";
+}
+
+function seedStub(playerId){
+  const p = getPlayerById(playerId);
+  return p ? { id: p.id, name: p.name } : null;
+}
+
+function getMissingResultsCount(){
+  const round = getCurrentRound();
+  if(!round) return 0;
+  return round.pairings.filter(p => !p.isBye && !p.resultCode).length;
+}
+
+function getActiveCount(){
+  return state.players.filter(p => !p.dropped && p.active !== false).length;
+}
+
+function pct(n){
+  return `${(n * 100).toFixed(1)}%`;
+}
+
+function formatRecord(player){
+  return `${player.matchWins}-${player.matchLosses}-${player.matchDraws}`;
+}
+
+function renderPairings(){
+  const round = getCurrentRound();
+  const lookup = new Map(state.players.map(p => [String(p.id), p.name]));
+  el.pairingsBody.innerHTML = "";
+
+  if(!round){
+    el.pairingsBody.innerHTML = `<tr><td colspan="6" class="tiny">No round built yet.</td></tr>`;
+    return;
+  }
+
+  for(const pairing of round.pairings){
+    const tr = document.createElement("tr");
+    if(!pairing.isBye && !pairing.resultCode) tr.classList.add("pairing-missing");
+    if(round.finalized) tr.classList.add("pairing-finalized");
+
+    const options = RESULT_CODES.map(code => `<option value="${code}" ${pairing.resultCode === code ? "selected" : ""}>${code || "Select"}</option>`).join("");
+
+    tr.innerHTML = `
+      <td>${pairing.table}</td>
+      <td>${lookup.get(String(pairing.playerA)) || pairing.playerA}</td>
+      <td>${pairing.isBye ? "BYE" : (lookup.get(String(pairing.playerB)) || pairing.playerB)}</td>
+      <td><span class="tag mono">${pairing.bracket}</span></td>
+      <td>${pairing.protectedTopTable ? `<span class="tag">Top-table protected</span>` : ""}${pairing.isBye ? ` <span class="tag">Auto BYE</span>` : ""}</td>
+      <td>${pairing.isBye ? `<span class="tag">BYE</span>` : `<select class="pairingResult" data-table="${pairing.table}" ${round.finalized ? "disabled" : ""}>${options}</select>`}</td>
+    `;
+    el.pairingsBody.appendChild(tr);
+  }
+
+  el.pairingsBody.querySelectorAll("select.pairingResult").forEach(sel => {
+    sel.addEventListener("change", e => {
+      const table = Number(e.target.dataset.table);
+      const pairing = round.pairings.find(p => p.table === table);
+      if(pairing) pairing.resultCode = e.target.value;
       renderDashboardBits();
-      renderPairings();
-      renderStandings();
       renderHistory();
+      renderStream();
+    });
+  });
+}
+
+function renderStandings(){
+  const standings = buildStandings();
+  el.standingsBody.innerHTML = "";
+  if(!standings.length){
+    el.standingsBody.innerHTML = `<tr><td colspan="8" class="tiny">No players loaded.</td></tr>`;
+    return;
+  }
+  for(const player of standings){
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${player.rank}</td>
+      <td>${player.name}</td>
+      <td class="mono">${formatRecord(player)}</td>
+      <td>${player.matchPoints}</td>
+      <td>${pct(player.omw)}</td>
+      <td>${pct(player.gw)}</td>
+      <td>${pct(player.ogw)}</td>
+      <td>${player.dropped ? `<span class="tag">Dropped</span>` : `<span class="tag">Active</span>`}</td>
+    `;
+    el.standingsBody.appendChild(tr);
+  }
+}
+
+function renderHistory(){
+  if(!state.rounds.length){
+    el.historyPanel.innerHTML = `<div class="tiny">No rounds yet.</div>`;
+    return;
+  }
+  const lookup = new Map(state.players.map(p => [String(p.id), p.name]));
+  el.historyPanel.innerHTML = state.rounds.map(round => {
+    const completed = round.pairings.filter(p => p.isBye || p.resultCode).length;
+    return `
+      <div class="history-item">
+        <div class="spread">
+          <strong>Round ${round.round}</strong>
+          <span class="tag">${round.finalized ? "Finalized" : "Open"}</span>
+        </div>
+        <div class="tiny">${completed}/${round.pairings.length} tables recorded</div>
+        <div class="tiny">${round.pairings.map(p => `${p.table}. ${lookup.get(String(p.playerA)) || p.playerA} ${p.isBye ? "gets BYE" : `vs ${lookup.get(String(p.playerB)) || p.playerB} [${p.resultCode || "pending"}]`}`).join(" • ")}</div>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderTopCut(){
+  if(!state.topCut?.generated){
+    el.topCutPanel.innerHTML = `<div class="tiny">No top cut generated yet.</div>`;
+    return;
+  }
+
+  resolveTopCutAdvancement();
+
+  const makeMatch = (roundName, m, idx, key) => {
+    const options = [
+      `<option value="">Select winner</option>`,
+      m.a ? `<option value="${m.a.id}" ${m.winnerId === m.a.id ? "selected" : ""}>${m.a.name}</option>` : "",
+      m.b ? `<option value="${m.b.id}" ${m.winnerId === m.b.id ? "selected" : ""}>${m.b.name}</option>` : ""
+    ].join("");
+
+    return `
+      <div class="topcut-box">
+        <div class="spread">
+          <strong>${roundName} ${idx + 1}</strong>
+          <span class="tag">Match ${m.match}</span>
+        </div>
+        <div class="tiny">${m.a ? m.a.name : "TBD"} vs ${m.b ? m.b.name : "TBD"}</div>
+        <select data-topcut-key="${key}" data-topcut-index="${idx}" ${(!m.a || !m.b) ? "disabled" : ""}>${options}</select>
+      </div>
+    `;
+  };
+
+  let html = `<div class="tiny">Top ${state.topCut.size}</div><div class="grid-2">`;
+
+  if(state.topCut.size === 8){
+    html += `<div class="stack"><strong>Quarterfinals</strong>${state.topCut.quarterfinals.map((m, i) => makeMatch("QF", m, i, "quarterfinals")).join("")}</div>`;
+  }
+
+  html += `<div class="stack"><strong>Semifinals</strong>${(state.topCut.semifinals || []).map((m, i) => makeMatch("SF", m, i, "semifinals")).join("")}</div>`;
+  html += `</div>`;
+
+  html += `<div class="stack" style="margin-top:12px;"><strong>Final</strong>${(state.topCut.finals || []).map((m, i) => makeMatch("Final", m, i, "finals")).join("")}</div>`;
+
+  if(state.topCut.championId){
+    const champ = getPlayerById(state.topCut.championId);
+    html += `<div class="topcut-box" style="margin-top:12px;"><strong>Champion:</strong> ${champ ? champ.name : state.topCut.championId}</div>`;
+  }
+
+  el.topCutPanel.innerHTML = html;
+
+  el.topCutPanel.querySelectorAll("select[data-topcut-key]").forEach(sel => {
+    sel.addEventListener("change", e => {
+      const key = e.target.dataset.topcutKey;
+      const index = Number(e.target.dataset.topcutIndex);
+      state.topCut[key][index].winnerId = e.target.value;
+      resolveTopCutAdvancement();
       renderTopCut();
       renderStream();
-    }
-
-    function formatTime(totalSeconds) {
-      const mins = Math.floor(totalSeconds / 60);
-      const secs = totalSeconds % 60;
-      return `${mins}:${String(secs).padStart(2, "0")}`;
-    }
-
-    function resetTimer() {
-      stopTimer(false);
-      const total = Math.max(1, Number(el.roundMinutes.value || state.roundMinutes)) * 60;
-      state.roundMinutes = Number(el.roundMinutes.value || state.roundMinutes);
-      state.timer.totalSeconds = total;
-      state.timer.remainingSeconds = total;
-      renderDashboardBits();
-    }
-
-    function tickTimer() {
-      if (!state.timer.running) return;
-      if (state.timer.remainingSeconds <= 0) {
-        stopTimer(false);
-        alert("Round timer expired.");
-        return;
-      }
-      state.timer.remainingSeconds -= 1;
-      renderDashboardBits();
-    }
-
-    function startTimer() {
-      stopTimer(false);
-      state.timer.running = true;
-      state.timer.intervalId = setInterval(tickTimer, 1000);
-      renderDashboardBits();
-    }
-
-    function stopTimer(renderAfter = true) {
-      state.timer.running = false;
-      if (state.timer.intervalId) clearInterval(state.timer.intervalId);
-      state.timer.intervalId = null;
-      if (renderAfter) renderDashboardBits();
-    }
-
-    function startEvent() {
-      const players = parsePlayers(el.playerInput.value);
-      if (players.length < 2) throw new Error("Enter at least two players.");
-      state.eventName = el.eventName.value.trim() || "1v1 Swiss Event";
-      state.eventDate = el.eventDate.value;
-      state.roundMinutes = Math.max(1, Number(el.roundMinutes.value || 50));
-      state.players = players;
-      state.rounds = [];
-      state.topCut = null;
-      const streamRotation = ensureStreamRotation();
-      streamRotation.index = 0;
-      if (streamRotation.intervalId) clearInterval(streamRotation.intervalId);
-      streamRotation.intervalId = null;
-      state.maxRounds = getMaxRounds(players.length);
-      resetTimer();
-      render();
-    }
-
-    function saveState() {
-      const serializable = JSON.stringify({
-        ...state,
-        timer: {
-          totalSeconds: state.timer.totalSeconds,
-          remainingSeconds: state.timer.remainingSeconds,
-          running: false,
-          intervalId: null
-        }
-      }, null, 2);
-      localStorage.setItem(STORAGE_KEY, serializable);
-      alert("Saved to browser storage.");
-    }
-
-    function loadStateFromObject(data) {
-      stopTimer(false);
-      state.eventName = data.eventName || "1v1 Swiss Event";
-      state.eventDate = data.eventDate || "";
-      state.roundMinutes = Number(data.roundMinutes || 50);
-      state.players = Array.isArray(data.players) ? data.players : [];
-      state.rounds = Array.isArray(data.rounds) ? data.rounds : [];
-      state.topCut = data.topCut || null;
-      state.streamRotation = {
-        index: Number(data.streamRotation?.index || 0),
-        intervalId: null
-      };
-      ensureStreamRotation();
-      state.maxRounds = Number(data.maxRounds || getMaxRounds(state.players.length));
-      state.timer = {
-        totalSeconds: Number(data.timer?.totalSeconds || state.roundMinutes * 60),
-        remainingSeconds: Number(data.timer?.remainingSeconds || state.roundMinutes * 60),
-        running: false,
-        intervalId: null
-      };
-      el.eventName.value = state.eventName;
-      el.eventDate.value = state.eventDate;
-      el.roundMinutes.value = state.roundMinutes;
-      el.playerInput.value = state.players.map(p => p.name).join("\n");
-      render();
-    }
-
-    function loadState() {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) throw new Error("No saved event found in browser storage.");
-      loadStateFromObject(JSON.parse(raw));
-      alert("Loaded saved event.");
-    }
-
-    function exportState() {
-      const blob = new Blob([JSON.stringify({
-        ...state,
-        timer: {
-          totalSeconds: state.timer.totalSeconds,
-          remainingSeconds: state.timer.remainingSeconds,
-          running: false,
-          intervalId: null
-        }
-      }, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${(state.eventName || "mtg_1v1_event").replace(/[^a-z0-9]+/gi, "_").toLowerCase()}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
-
-    function toggleStreamMode(on) {
-      document.body.classList.toggle("stream-mode", on);
-      if (on) {
-        const streamRotation = ensureStreamRotation();
-        if (streamRotation.intervalId) clearInterval(streamRotation.intervalId);
-        streamRotation.intervalId = setInterval(() => {
-          ensureStreamRotation().index += 1;
-          renderStream();
-        }, 5000);
-      } else {
-        const streamRotation = ensureStreamRotation();
-        if (streamRotation.intervalId) clearInterval(streamRotation.intervalId);
-        streamRotation.intervalId = null;
-      }
-    }
-
-    el.startBtn.addEventListener("click", () => runSafe(startEvent));
-    el.sampleBtn.addEventListener("click", () => {
-      el.playerInput.value = ["Alice","Bob","Charlie","Dana","Eli","Fern","Gus","Hazel"].join("\n");
     });
-    el.buildRoundBtn.addEventListener("click", () => runSafe(buildNextRound));
-    el.finalizeRoundBtn.addEventListener("click", () => runSafe(finalizeCurrentRound));
-    el.unlockRoundBtn.addEventListener("click", () => runSafe(unlockCurrentRound));
-    el.dropPlayerBtn.addEventListener("click", () => runSafe(dropSelectedPlayer));
-    el.startTimerBtn.addEventListener("click", () => runSafe(startTimer));
-    el.pauseTimerBtn.addEventListener("click", () => stopTimer(true));
-    el.resetTimerBtn.addEventListener("click", () => runSafe(resetTimer));
-    el.saveBtn.addEventListener("click", () => runSafe(saveState));
-    el.loadBtn.addEventListener("click", () => el.filePicker.click());
-    el.exportBtn.addEventListener("click", () => runSafe(exportState));
-    el.streamBtn.addEventListener("click", () => toggleStreamMode(true));
-    el.streamExitBtn.addEventListener("click", () => toggleStreamMode(false));
-    el.filePicker.addEventListener("change", async (event) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
-      const text = await file.text();
-      runSafe(() => loadStateFromObject(JSON.parse(text)));
-      event.target.value = "";
-    });
+  });
+}
 
-    function runSafe(fn) {
-      try {
-        fn();
-      } catch (error) {
-        alert(error.message || String(error));
-      }
-    }
+function renderDashboardBits(){
+  const round = getCurrentRound();
+  const activeCount = getActiveCount();
+  const missing = getMissingResultsCount();
 
-    el.eventDate.value = new Date().toISOString().slice(0, 10);
-    resetTimer();
-    render();
-  </script>
+  el.metricPlayers.textContent = state.players.length;
+  el.metricPlayersSub.textContent = `${activeCount} active`;
+  el.metricRound.textContent = `${state.rounds.length} / ${state.maxRounds}`;
+  el.metricRoundSub.textContent = round ? (round.finalized ? `Round ${round.round} finalized` : `Round ${round.round} open`) : "Waiting to start";
+  el.metricMissing.textContent = missing;
+  el.metricTimer.textContent = formatTime(state.timer.remainingSeconds);
+  el.metricTimerSub.textContent = state.timer.running ? "Timer running" : "Timer ready";
+  el.eventSummary.textContent = state.players.length ? `${state.eventName} • ${state.eventDate || "No date"}` : "No event in progress";
+  el.roundState.textContent = round ? (round.finalized ? `Round ${round.round} complete` : `Round ${round.round} pending`) : "No round built";
+  el.timerDisplay.textContent = formatTime(state.timer.remainingSeconds);
+
+  if(!state.players.length){
+    el.judgeStatus.textContent = "No event loaded";
+  } else if(!round){
+    el.judgeStatus.textContent = "Ready to build Round 1";
+  } else if(round.finalized){
+    el.judgeStatus.textContent = `Round ${round.round} finalized`;
+  } else if(missing > 0){
+    el.judgeStatus.textContent = `Round ${round.round} missing ${missing} result(s)`;
+  } else {
+    el.judgeStatus.textContent = `Round ${round.round} ready to finalize`;
+  }
+}
+
+function renderPlayerSelect(){
+  const currentValue = el.playerSelect.value;
+  el.playerSelect.innerHTML = state.players.map(p => `<option value="${p.id}" ${String(p.id) === String(currentValue) ? "selected" : ""}>${p.name}${p.dropped ? " (Dropped)" : ""}</option>`).join("");
+}
+
+function renderSwapTableSelects(){
+  const round = getCurrentRound();
+  const options = round ? round.pairings.filter(p => !p.isBye).map(p => `<option value="${p.table}">Table ${p.table}</option>`).join("") : "";
+  el.swapTableA.innerHTML = `<option value="">Select</option>${options}`;
+  el.swapTableB.innerHTML = `<option value="">Select</option>${options}`;
+}
+
+function renderStream(){
+  if(!el.streamScreen.classList.contains("active")) return;
+
+  const standings = buildStandings().filter(p => !p.dropped);
+  const round = getCurrentRound();
+  el.streamEventTitle.textContent = state.eventName || "MTG 1v1 Judge App";
+  el.streamEventSub.textContent = round ? `Round ${round.round}${round.finalized ? " • Finalized" : ""}` : "No round built";
+
+  if(state.stream.mode === "standings"){
+    el.streamGrid.innerHTML = `
+      <div class="stream-card" style="grid-column:1/-1;">
+        <h2 style="margin-top:0;">Standings</h2>
+        <table class="stream-table">
+          <thead><tr><th>#</th><th>Name</th><th>Record</th><th>MP</th></tr></thead>
+          <tbody>
+            ${standings.slice(0, 16).map(p => `<tr><td>${p.rank}</td><td>${p.name}</td><td>${formatRecord(p)}</td><td>${p.matchPoints}</td></tr>`).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+    return;
+  }
+
+  if(state.topCut?.generated && state.topCut.championId){
+    const champ = getPlayerById(state.topCut.championId);
+    el.streamGrid.innerHTML = `
+      <div class="stream-card" style="grid-column:1/-1;">
+        <h2 style="margin-top:0;">Champion</h2>
+        <div style="font-size:40px;font-weight:700;">${champ ? champ.name : state.topCut.championId}</div>
+      </div>
+    `;
+    return;
+  }
+
+  if(!round){
+    el.streamGrid.innerHTML = `<div class="stream-card" style="grid-column:1/-1;">No round built yet.</div>`;
+    return;
+  }
+
+  const nonBye = round.pairings.filter(p => !p.isBye);
+  const pageSize = 8;
+  const totalPages = Math.max(1, Math.ceil(nonBye.length / pageSize));
+  if(state.stream.rotationIndex >= totalPages) state.stream.rotationIndex = 0;
+
+  const page = state.stream.rotationIndex;
+  const slice = nonBye.slice(page * pageSize, page * pageSize + pageSize);
+  const lookup = new Map(state.players.map(p => [String(p.id), p.name]));
+
+  el.streamGrid.innerHTML = `
+    <div class="stream-card">
+      <h2 style="margin-top:0;">Pairings</h2>
+      <table class="stream-table">
+        <thead><tr><th>Table</th><th>Player A</th><th>Player B</th></tr></thead>
+        <tbody>
+          ${slice.map(p => `<tr><td>${p.table}</td><td>${lookup.get(String(p.playerA))}</td><td>${lookup.get(String(p.playerB))}</td></tr>`).join("")}
+        </tbody>
+      </table>
+      <div class="tiny" style="margin-top:10px;">Page ${page + 1} / ${totalPages}</div>
+    </div>
+    <div class="stream-card">
+      <h2 style="margin-top:0;">Top Standings</h2>
+      <table class="stream-table">
+        <thead><tr><th>#</th><th>Name</th><th>MP</th></tr></thead>
+        <tbody>
+          ${standings.slice(0, 8).map(p => `<tr><td>${p.rank}</td><td>${p.name}</td><td>${p.matchPoints}</td></tr>`).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function startStreamRotation(){
+  if(state.stream.intervalId) clearInterval(state.stream.intervalId);
+  state.stream.intervalId = setInterval(() => {
+    state.stream.rotationIndex++;
+    renderStream();
+  }, 5000);
+}
+
+function stopStreamRotation(){
+  if(state.stream.intervalId){
+    clearInterval(state.stream.intervalId);
+    state.stream.intervalId = null;
+  }
+}
+
+function saveState(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    ...state,
+    timer: { ...state.timer, intervalId: null, running: false },
+    stream: { ...state.stream, intervalId: null }
+  }));
+  alert("Saved to browser storage.");
+}
+
+function loadState(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(!raw) throw new Error("No saved event found.");
+  loadStateFromObject(JSON.parse(raw));
+  alert("Loaded saved event.");
+}
+
+function loadStateFromObject(data){
+  stopTimer(false);
+  stopStreamRotation();
+
+  state.eventName = data.eventName || "1v1 Swiss Event";
+  state.eventDate = data.eventDate || "";
+  state.roundMinutes = Number(data.roundMinutes || 50);
+  state.players = Array.isArray(data.players) ? data.players : [];
+  state.rounds = Array.isArray(data.rounds) ? data.rounds : [];
+  state.maxRounds = Number(data.maxRounds || getMaxRounds(state.players.length));
+  state.topCut = data.topCut || null;
+  state.stream = {
+    mode: data.stream?.mode || "pairings",
+    rotationIndex: Number(data.stream?.rotationIndex || 0),
+    intervalId: null
+  };
+  state.timer = {
+    totalSeconds: Number(data.timer?.totalSeconds || state.roundMinutes * 60),
+    remainingSeconds: Number(data.timer?.remainingSeconds || state.roundMinutes * 60),
+    running: false,
+    intervalId: null
+  };
+
+  el.eventName.value = state.eventName;
+  el.eventDate.value = state.eventDate;
+  el.roundMinutes.value = state.roundMinutes;
+  el.playerInput.value = state.players.map(p => p.name).join("\n");
+
+  render();
+}
+
+function exportState(){
+  const blob = new Blob([JSON.stringify({
+    ...state,
+    timer: { ...state.timer, intervalId: null, running: false },
+    stream: { ...state.stream, intervalId: null }
+  }, null, 2)], { type: "application/json" });
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${(state.eventName || "mtg_1v1_event").replace(/[^a-z0-9]+/gi, "_").toLowerCase()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function startEvent(){
+  const players = parsePlayers(el.playerInput.value);
+  if(players.length < 2) throw new Error("Enter at least two players.");
+  if(!confirm("Start / Reset event? This clears the current tournament.")) return;
+
+  stopTimer(false);
+  stopStreamRotation();
+
+  state.eventName = el.eventName.value.trim() || "1v1 Swiss Event";
+  state.eventDate = el.eventDate.value;
+  state.roundMinutes = Math.max(1, Number(el.roundMinutes.value || 50));
+  state.players = players;
+  state.rounds = [];
+  state.maxRounds = getMaxRounds(players.length);
+  state.topCut = null;
+  state.stream = { mode: "pairings", rotationIndex: 0, intervalId: null };
+  resetTimer();
+
+  render();
+}
+
+function render(){
+  renderPlayerSelect();
+  renderSwapTableSelects();
+  renderPairings();
+  renderStandings();
+  renderHistory();
+  renderTopCut();
+  renderDashboardBits();
+  renderStream();
+}
+
+el.startBtn.addEventListener("click", () => runSafe(startEvent));
+el.sampleBtn.addEventListener("click", () => {
+  el.playerInput.value = ["Alice","Bob","Charlie","Dana","Eli","Fern","Gus","Hazel"].join("\n");
+});
+el.buildRoundBtn.addEventListener("click", () => runSafe(buildNextRound));
+el.finalizeRoundBtn.addEventListener("click", () => runSafe(finalizeCurrentRound));
+el.unlockRoundBtn.addEventListener("click", () => runSafe(unlockCurrentRound));
+el.rewindBtn.addEventListener("click", () => runSafe(rewindLastRound));
+el.toggleDropBtn.addEventListener("click", () => runSafe(toggleSelectedPlayerDrop));
+el.generateTopCutBtn.addEventListener("click", () => runSafe(generateTopCut));
+el.startTimerBtn.addEventListener("click", () => runSafe(startTimer));
+el.pauseTimerBtn.addEventListener("click", () => stopTimer(true));
+el.resetTimerBtn.addEventListener("click", () => runSafe(resetTimer));
+el.swapBtn.addEventListener("click", () => runSafe(manualSwapTables));
+
+el.saveBtn.addEventListener("click", () => runSafe(saveState));
+el.loadBtn.addEventListener("click", () => runSafe(loadState));
+el.exportBtn.addEventListener("click", () => runSafe(exportState));
+el.importBtn.addEventListener("click", () => el.filePicker.click());
+el.filePicker.addEventListener("change", async e => {
+  const file = e.target.files?.[0];
+  if(!file) return;
+  const text = await file.text();
+  runSafe(() => loadStateFromObject(JSON.parse(text)));
+  e.target.value = "";
+});
+
+el.streamBtn.addEventListener("click", () => {
+  el.streamScreen.classList.add("active");
+  renderStream();
+});
+el.streamExitBtn.addEventListener("click", () => {
+  el.streamScreen.classList.remove("active");
+  stopStreamRotation();
+});
+el.streamRotateBtn.addEventListener("click", () => {
+  state.stream.mode = "pairings";
+  state.stream.rotationIndex = 0;
+  renderStream();
+  startStreamRotation();
+});
+el.streamStandingsBtn.addEventListener("click", () => {
+  stopStreamRotation();
+  state.stream.mode = "standings";
+  renderStream();
+});
+el.streamPairingsBtn.addEventListener("click", () => {
+  stopStreamRotation();
+  state.stream.mode = "pairings";
+  renderStream();
+});
+
+el.eventDate.value = new Date().toISOString().slice(0,10);
+resetTimer();
+render();
+</script>
 </body>
 </html>
