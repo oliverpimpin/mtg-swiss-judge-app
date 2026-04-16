@@ -420,6 +420,20 @@
       }
     };
 
+
+    function ensureStreamRotation() {
+      if (!state.streamRotation || typeof state.streamRotation !== "object") {
+        state.streamRotation = { index: 0, intervalId: null };
+      }
+      if (typeof state.streamRotation.index !== "number" || Number.isNaN(state.streamRotation.index)) {
+        state.streamRotation.index = 0;
+      }
+      if (!("intervalId" in state.streamRotation)) {
+        state.streamRotation.intervalId = null;
+      }
+      return state.streamRotation;
+    }
+
     const el = {};
     [
       "eventName","roundMinutes","eventDate","playerInput","startBtn","sampleBtn","saveBtn","loadBtn","exportBtn","streamBtn",
@@ -1196,7 +1210,7 @@
         el.streamGrid.innerHTML = `<div class="stream-card"><div class="stream-player">No pairings yet</div></div>`;
       } else {
         const visible = round.pairings.filter(p => !p.isBye);
-        const rotationIndex = state.streamRotation.index % Math.max(visible.length || 1, 1);
+        const rotationIndex = ensureStreamRotation().index % Math.max(visible.length || 1, 1);
         const spotlight = visible.length ? visible.slice(rotationIndex, rotationIndex + 4).concat(visible.slice(0, Math.max(0, rotationIndex + 4 - visible.length))) : [];
         const cards = spotlight.length ? spotlight : round.pairings;
         el.streamGrid.innerHTML = cards.map((pairing, idx) => `
@@ -1284,10 +1298,10 @@
       state.players = players;
       state.rounds = [];
       state.topCut = null;
-      state.streamRotation = state.streamRotation || { index: 0, intervalId: null };
-      state.streamRotation.index = 0;
-      if (state.streamRotation.intervalId) clearInterval(state.streamRotation.intervalId);
-      state.streamRotation.intervalId = null;
+      const streamRotation = ensureStreamRotation();
+      streamRotation.index = 0;
+      if (streamRotation.intervalId) clearInterval(streamRotation.intervalId);
+      streamRotation.intervalId = null;
       state.maxRounds = getMaxRounds(players.length);
       resetTimer();
       render();
@@ -1319,6 +1333,7 @@
         index: Number(data.streamRotation?.index || 0),
         intervalId: null
       };
+      ensureStreamRotation();
       state.maxRounds = Number(data.maxRounds || getMaxRounds(state.players.length));
       state.timer = {
         totalSeconds: Number(data.timer?.totalSeconds || state.roundMinutes * 60),
@@ -1361,14 +1376,16 @@
     function toggleStreamMode(on) {
       document.body.classList.toggle("stream-mode", on);
       if (on) {
-        if (state.streamRotation.intervalId) clearInterval(state.streamRotation.intervalId);
-        state.streamRotation.intervalId = setInterval(() => {
-          state.streamRotation.index += 1;
+        const streamRotation = ensureStreamRotation();
+        if (streamRotation.intervalId) clearInterval(streamRotation.intervalId);
+        streamRotation.intervalId = setInterval(() => {
+          ensureStreamRotation().index += 1;
           renderStream();
         }, 5000);
       } else {
-        if (state.streamRotation.intervalId) clearInterval(state.streamRotation.intervalId);
-        state.streamRotation.intervalId = null;
+        const streamRotation = ensureStreamRotation();
+        if (streamRotation.intervalId) clearInterval(streamRotation.intervalId);
+        streamRotation.intervalId = null;
       }
     }
 
