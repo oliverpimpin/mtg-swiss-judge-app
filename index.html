@@ -216,6 +216,7 @@
           <div class="row">
             <button class="btn-green" id="startTournamentBtn">Start Tournament</button>
             <button class="btn-blue" id="finalizeRoundBtn">Finalize Round</button>
+            <button class="btn-gray" id="reopenRoundBtn">Reopen Current Round</button>
             <button class="btn-blue" id="buildNextRoundBtn">Build Next Round</button>
             <button class="btn-red" id="undoLastRoundBtn">Undo Last Round</button>
             <button class="btn-red" id="resetTournamentBtn">Reset Tournament</button>
@@ -238,6 +239,7 @@
           <div class="muted">• 17 or more players: Top 8</div>
           <div class="muted">Match points: Win 3 | Draw 1 | Loss 0 | BYE 3</div>
           <div class="muted">Standings update only after round finalization.</div>
+          <div class="muted">Reopen Current Round keeps pairings but unlocks results.</div>
           <div class="muted">Undo Last Round removes the most recently created Swiss round.</div>
         </div>
       </div>
@@ -313,7 +315,7 @@
   </div>
 
   <script>
-    const STORAGE_KEY = "mtg_swiss_pairings_state_v4_undo_round_fix";
+    const STORAGE_KEY = "mtg_swiss_pairings_state_v5_reopen_round_fix";
 
     const RESULT_OPTIONS = [
       { value: "", label: "-- Select Result --" },
@@ -672,11 +674,6 @@
       return round.matches.every(m => !!m.result);
     }
 
-    function currentRoundIsFinalized() {
-      const round = currentRoundObj();
-      return !!round?.finalized;
-    }
-
     function startTournament() {
       const activePlayers = getActivePlayers();
       if (activePlayers.length < 2) {
@@ -727,6 +724,44 @@
         state.finishedSwiss = true;
         beginTopCutIfNeeded();
       }
+
+      saveState();
+      render();
+    }
+
+    function reopenCurrentRound() {
+      if (!state.started) {
+        alert("No tournament is in progress.");
+        return;
+      }
+
+      if (state.topCutStarted || state.topCutRounds.length > 0 || state.championId) {
+        alert("Reopen Current Round only works during Swiss before Top Cut begins.");
+        return;
+      }
+
+      const round = currentRoundObj();
+      if (!round) {
+        alert("No current round exists.");
+        return;
+      }
+
+      if (!round.finalized) {
+        alert("The current round is already open.");
+        return;
+      }
+
+      if (state.currentRound < state.rounds.length) {
+        alert("Only the most recent round can be reopened.");
+        return;
+      }
+
+      if (!confirm(`Reopen Round ${round.roundNumber}? This keeps pairings but unlocks results and temporarily rewinds standings.`)) {
+        return;
+      }
+
+      round.finalized = false;
+      state.finishedSwiss = false;
 
       saveState();
       render();
@@ -975,7 +1010,7 @@
           if (round && !round.finalized) {
             const pairedThisRound = round.matches.some(m => m.player1Id === player.id || m.player2Id === player.id);
             if (pairedThisRound) {
-              alert("You cannot drop or undrop a player during an unfinalized round. Undo the current round first if you need to repair pairings.");
+              alert("You cannot drop or undrop a player during an open round where they are paired. Undo the round if you need to repair pairings.");
               return;
             }
           }
@@ -1027,8 +1062,8 @@
       const locked = round.finalized;
 
       status.innerHTML = locked
-        ? `<span class="success">Round ${round.roundNumber} finalized.</span> Standings are locked in. You may undo this round if you need to repair drops or pairings.`
-        : `<span class="warn">Round ${round.roundNumber} not finalized.</span> Results may be entered, but standings do not update until finalization.`;
+        ? `<span class="success">Round ${round.roundNumber} finalized.</span> Standings are locked in. Reopen this round to fix results, or undo it to rebuild pairings.`
+        : `<span class="warn">Round ${round.roundNumber} open.</span> Results may be entered, but standings do not update until finalization.`;
 
       container.innerHTML = round.matches.map(match => {
         const player1 = getPlayerById(match.player1Id)?.name || "Unknown";
@@ -1280,6 +1315,7 @@
     };
 
     document.getElementById("finalizeRoundBtn").onclick = finalizeRound;
+    document.getElementById("reopenRoundBtn").onclick = reopenCurrentRound;
     document.getElementById("buildNextRoundBtn").onclick = buildNextRound;
     document.getElementById("undoLastRoundBtn").onclick = undoLastRound;
     document.getElementById("resetTournamentBtn").onclick = resetTournament;
